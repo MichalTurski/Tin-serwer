@@ -1,7 +1,7 @@
 #ifndef _L_UTILS_IOT_
 #define _L_UTILS_IOT_
 
-#include <stdio.h>
+#include <cstdio>
 
 #define log(level, ...)	printf(__VA_ARGS__)
 
