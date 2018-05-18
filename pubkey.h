@@ -12,6 +12,6 @@ public:
 	int encrypt(const unsigned char *data, size_t data_len, unsigned char *encrypted) const;
 	Pubkey(const char* file_name);
 	~Pubkey();
-	bool verify_resp(const unsigned char *resp, size_t resp_size, const unsigned char *chall, size_t chal_size);
+	bool verify_resp(const unsigned char *resp, size_t resp_size, const unsigned char *chall, size_t chal_size) const;
 };
 #endif //PUBKEY_H

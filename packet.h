@@ -5,6 +5,7 @@
 #include <ctime>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 #include "sesskey.h"
 
@@ -28,7 +29,7 @@ protected:
 	uint32_t buf_size;
 //	Packet(unsigned char *buf): buf(buf) {}
 	Packet(const unsigned char *buf_in, uint32_t buf_len);
-	Packet(int size);
+	Packet(size_t size);
 public:
 	static Packet *packetFactory(int soc_desc, const Sesskey *sesskey);
 //    Packet(int soc_desc, const Sesskey *sesskey);
@@ -40,7 +41,7 @@ public:
 class EncrptedPacket : public Packet {
 protected:
 	EncrptedPacket(const unsigned char *buf, uint32_t buf_len): Packet(buf, buf_len){}
-	EncrptedPacket(int size): Packet(size){}
+	EncrptedPacket(size_t size): Packet(size){}
 public:
 	ssize_t send(int soc_desc, const Sesskey *sesskey) const override ;
 };
@@ -50,7 +51,7 @@ class PlainPacket : public Packet {
 protected:
 	PlainPacket(const unsigned char *buf, uint32_t buf_len): Packet(buf, buf_len){}
 //	PlainPacket(unsigned char *buf): Packet(buf){}
-	PlainPacket(int size): Packet(size){}
+	PlainPacket(size_t size): Packet(size){}
 public:
 	ssize_t send(int soc_desc, const Sesskey *sesskey) const override;
 };
@@ -98,9 +99,13 @@ public:
 };
 
 class KEY : public PlainPacket {
+private:
+	KEY(const unsigned char* buf): PlainPacket(buf, 257) {}
 public:
     const unsigned char *getKeyBuf() const;
-	KEY(const unsigned char* encoded);
+	//KEY(const unsigned char* encoded);
+	static KEY *createFromMessage(const unsigned char *msg);
+	static KEY *createFromEncrypted(const unsigned char *encrypt);
 };
 
 class DESC : public EncrptedPacket {
@@ -110,8 +115,9 @@ public:
 	const char *getUnit() const;
 	float getMin() const;
 	float getMax() const;
+	DESC(std::string name, std::string unit, float min, float max);
 	//DESC(Packet &&packet);
-	DESC(unsigned char *buf): EncrptedPacket(buf, 17) {}
+	DESC(unsigned char *buf, size_t bufSize): EncrptedPacket(buf, bufSize) {}
 };
 
 class VAL : public EncrptedPacket {
@@ -140,6 +146,7 @@ class ID : public PlainPacket {
 public:
 	unsigned char getId() const;
 	ID(unsigned char *buf): PlainPacket(buf, 2) {}
+	ID(unsigned char id);
 	//ID(Packet &&packet);
 };
 #endif //PACKET_H

@@ -16,4 +16,4 @@ add_executable(Serwer main.cpp
         sesskey.cpp sesskey.h
         client.cpp client.h
         Server.cpp Server.h
-        utils.h ClientMock.h)
+        utils.h ClientMock.h ConHandler.cpp ConHandler.h)

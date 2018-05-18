@@ -13,7 +13,8 @@ private:
     Privkey privkey;
 public:
     Server(const char *file);
-    bool verifyServer(int sockDesc);
+    Server() = default;
+    bool verifyServer(int sockDesc) const;
 };
 
 

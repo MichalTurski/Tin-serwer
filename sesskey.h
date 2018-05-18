@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <cstdlib>
 #include "packet.h"
+#include "privkey.h"
 
 class KEY;
 
@@ -13,7 +14,7 @@ private:
     EVP_CIPHER_CTX *ctx;
 public:
 	Sesskey();
-	Sesskey(const KEY &key);
+	Sesskey(const KEY &key, const Privkey &privkey);
 	~Sesskey();
 	/* Both encode and decode messages assumes that encrypted message has IV in the end */
 	int encrypt(unsigned char *dest, const unsigned char *src, size_t src_size) const;

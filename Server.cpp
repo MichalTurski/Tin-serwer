@@ -8,7 +8,7 @@
 
 Server::Server(const char *file): privkey(file) {}
 
-bool Server::verifyServer(int sockDesc) {
+bool Server::verifyServer(int sockDesc) const {
     unsigned char ciphered[256];
     Packet *packet = Packet::packetFactory(sockDesc, nullptr);
     if (packet != nullptr) {

@@ -7,14 +7,13 @@
 class Client {
 private:
 	Pubkey pubkey;
-	bool verified;
-//	int id;
+	int id;
 
-    bool verifyClient(int sockDesc);
+    bool verifyClient(int sockDesc) const;
     bool getService(int sockDesc);
 
 public:
-	Client(const char *pubkey);
-	void initalize(int sockDesc, Server &server);
+	Client(int id, const char *pubkey);
+	bool initalize(int sockDesc, const Server &server);
 };
 #endif //CLIENT_H

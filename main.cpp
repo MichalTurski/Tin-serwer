@@ -10,6 +10,7 @@
 #include "Server.h"
 #include "client.h"
 #include "ClientMock.h"
+#include "ConHandler.h"
 
 int initSocket() {
     struct sockaddr_in srvAddr;
@@ -32,22 +33,23 @@ int initSocket() {
 }
 
 int main() {
-    Server server("privkey.pem");
-    Client client("pubkey.pem");
+    struct sockaddr_in clientAssoc;
+    socklen_t assocSize;
+    //Server server("privkey.pem");
+    //Client client("pubkey.pem");
+    ConHandler conHandler("configfile.conf");
     int socket = initSocket();
     pthread_t thread;
     pthread_create(&thread, NULL, clientMock, NULL);
 
-    int sock = accept(socket, NULL, NULL);
-    client.initalize(sock, server);
+    assocSize = sizeof(clientAssoc);
+    int sock = accept(socket, (struct sockaddr*)&clientAssoc, &assocSize);
+//    client.initalize(sock, server);
+    conHandler.handle(sock, clientAssoc.sin_addr);
     close(sock);
     close(socket);
 
-
     pthread_join(thread, NULL);
 
-
-
-    //TODO:: dopisać privkey.cpp i storzyć maszynę stanów która zrealizuje pojedyncze połącznie
     return 0;
 }

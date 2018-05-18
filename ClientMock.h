@@ -20,14 +20,15 @@ bool verifyAgainstServer(int sock, Privkey &privkey) {
     Packet *packet = Packet::packetFactory(sock, nullptr);
     if (packet != nullptr) {
         if (CHALL *chall = dynamic_cast<CHALL *>(packet)) {
-            privkey.encrypt(chall->getChall(), 8, ciphered);
-            delete(packet);
-            CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(ciphered);
-            if (challResp->send(sock, nullptr) > 0) {
-                delete(challResp);
-                return true;
-            } else {
-                delete(challResp);
+            if (privkey.encrypt(chall->getChall(), 8, ciphered) > 0) {
+                delete (packet);
+                CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(ciphered);
+                if (challResp->send(sock, nullptr) > 0) {
+                    delete (challResp);
+                    return true;
+                } else {
+                    delete (challResp);
+                }
             }
         } else {
             delete(packet);
@@ -78,12 +79,19 @@ void *clientMock(void *) {
     Pubkey pubkey("pubkey.pem");
     Privkey privkey("privkey.pem");
 
+    ID id(1);
+    id.send(cliSock, nullptr);
     if (verifyAgainstServer(cliSock, privkey)) {
         if (verifyAgainstClient(cliSock, pubkey)) {
-            Sesskey sesskey();
             Packet *packet = Packet::packetFactory(cliSock, nullptr);
             if (KEY *keyPck = dynamic_cast<KEY *> (packet)) {
-
+                Sesskey sesskey(*keyPck, privkey);
+                for(int i = 0; i<5; i++) {
+                    DESC desc("Nazwa", "szt", 1.2, 1.3);
+                    desc.send(cliSock, &sesskey);
+                }
+                EOT eot;
+                eot.send(cliSock, &sesskey);
                 return nullptr;
             }
         }

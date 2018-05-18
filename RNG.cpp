@@ -8,9 +8,11 @@
 #include "utils.h"
 
 RNG::RNG() {
+	OPENSSL_config (nullptr);
 	ERR_load_crypto_strings ();
-	OpenSSL_add_all_algorithms ();
-	OPENSSL_config (NULL);
+    OpenSSL_add_all_ciphers();
+	OpenSSL_add_all_algorithms();
+	CRYPTO_malloc_init();
 }
 RNG::~RNG() {
 	ERR_free_strings ();

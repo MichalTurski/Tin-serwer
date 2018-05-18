@@ -4,6 +4,7 @@
 #include <utility>
 #include <sys/socket.h>
 #include <ctime>
+#include <stdexcept>
 
 #include "packet.h"
 #include "sesskey.h"
@@ -27,7 +28,7 @@ int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 	}
 	return i;
 }
-ssize_t writeTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
+ssize_t writeTillDone(int soc_desc, const unsigned char *buf, ssize_t msg_size) {
 	ssize_t i = 0;
 	ssize_t written;
 
@@ -47,14 +48,14 @@ ssize_t writeTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 }
 
 inline int encryptedLen(int plain_len) {
-	//return (plain_len / 16 + 2) *16;//+1 is for padding, another +1 is for iv, hence +2
-    return (plain_len + (plain_len - plain_len % 16) + 16);// message_size + padding + iv
+	//return (plain_len / 16 + 2) *16;//+1 is for padding, another +1 is for iv, therefore +2
+    return (plain_len + (16 - plain_len % 16) + 16);// message_size + padding + iv
 }
 
 Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 	Packet *new_packet;
 	int expected_size;
-	unsigned char encrypted[260];
+	unsigned char *encrypted;
 	uint32_t plain_len;
 	unsigned char is_crypted;
 	unsigned char *new_buf;
@@ -73,7 +74,8 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 	} else {
 		expected_size = plain_len;
 	}
-	new_buf = new unsigned char [plain_len];
+	new_buf = new unsigned char [plain_len + 16]; //TODO: why there is +16?
+	encrypted = new unsigned char [expected_size];
 
 	if (readTillDone(soc_desc, encrypted, expected_size) < 1)
 		return nullptr;
@@ -90,10 +92,13 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			case (PCK_EXIT):
 				log(2, "This packet should be encrypted, but it is not.\n");
 				delete[] new_buf;
+				delete[] encrypted;
 				return nullptr;
 		}
 		memcpy(new_buf, encrypted, expected_size);
 	}
+	//log(2, "aaa");
+	delete[] encrypted;
 
 	switch (new_buf[0]){
 		case (PCK_ACK):
@@ -106,7 +111,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			new_packet = new EOT(new_buf);
 			break;
 		case (PCK_KEY):
-			new_packet = new KEY(new_buf);
+			new_packet = KEY::createFromMessage(new_buf);
 			break;
 		case (PCK_CHALL):
 			new_packet = CHALL::createFromMessage(new_buf);
@@ -115,7 +120,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			new_packet = CHALL_RESP::createFromMessage(new_buf);
 			break;
 		case (PCK_DESC):
-			new_packet = new DESC(new_buf);
+			new_packet = new DESC(new_buf, plain_len);
 			break;
 		case (PCK_VAL):
 			new_packet = new VAL(new_buf);
@@ -128,8 +133,9 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			break;
 		default:
 			log(2, "Packet not recognised\n");
-			new_packet = NULL;
+			new_packet = nullptr;
 	}
+	delete[] new_buf;
 	return new_packet;
 }
 
@@ -137,7 +143,7 @@ Packet::Packet(const unsigned char *buf_in, uint32_t buf_len): buf_size(buf_len)
 	buf = new unsigned char[buf_len];
 	memcpy(buf, buf_in, buf_len);
 }
-Packet::Packet(int size) {
+Packet::Packet(size_t size) {
     buf_size = size;
 	buf = new unsigned char [size];
 }
@@ -149,7 +155,7 @@ ssize_t EncrptedPacket::send(int soc_desc, const Sesskey *sesskey) const {
 	unsigned char *encrypted;
 	ssize_t ret;
 	unsigned char boolean = (unsigned char) true;
-	int encrypted_size = encryptedLen(buf_size);
+	int32_t encrypted_size = encryptedLen(buf_size);
 	encrypted = new unsigned char[encrypted_size];
 	sesskey->encrypt(encrypted, buf, buf_size);
 	ret = writeTillDone(soc_desc, (unsigned char*) &buf_size, sizeof(buf_size));
@@ -221,12 +227,21 @@ const unsigned char* CHALL_RESP::getResp() const {
 	return &buf[1];
 }
 
-KEY::KEY(const unsigned char *encoded): PlainPacket(257) {
+/*KEY::KEY(const unsigned char *encoded): PlainPacket(257) {
 	buf[0] = PCK_KEY;
 	memcpy(&buf[1], encoded, 256);
+}*/
+KEY* KEY::createFromMessage(const unsigned char *msg) {
+	return new KEY(msg);
+}
+KEY* KEY::createFromEncrypted(const unsigned char *encrypt) {
+	unsigned char buf[257];
+	buf[0] = PCK_KEY;
+	memcpy(&buf[1], encrypt, 256);
+	return new KEY(buf);
 }
 const unsigned char* KEY::getKeyBuf() const {
-	return buf;
+	return &buf[1];
 }
 
 /*DESC::DESC(Packet &&packet): EncrptedPacket(packet.buf) {
@@ -251,6 +266,19 @@ float DESC::getMax() const {
 	float max;
 	memcpy(&max, &buf[74], sizeof(float));
 	return max;
+}
+DESC::DESC(std::string name, std::string unit, float min, float max):
+		EncrptedPacket(name.length() + 15) {// 1 byte for header, 1 byte for type, 1 for terminating 0, 4 for unit, 4 for min, 4 for max, total 15
+	if (unit.size() > 3) {
+	    delete[] buf;
+	    throw(std::runtime_error("Unit name is too long."));
+	}
+	buf[0] = PCK_DESC;
+	//TODO: buf[1] = ?;
+	memcpy(&buf[2], name.c_str(), name.size()+1);//TODO: change it to make name longer
+	memcpy(&buf[name.size() + 3], unit.c_str(), name.size()+1);
+	memcpy(&buf[name.size() + 7], &min, sizeof(float));
+	memcpy(&buf[name.size() + 11], &max, sizeof(float));
 }
 
 /*VAL::VAL(Packet &&packet): EncrptedPacket(packet.buf) {
@@ -292,4 +320,8 @@ unsigned char EXIT::getCode() const {
 }*/
 unsigned char ID::getId() const {
 	return buf[1];
+}
+ID::ID(unsigned char id): PlainPacket(2) {
+	buf[0] = PCK_ID;
+	buf[1] = id;
 }

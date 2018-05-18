@@ -3,6 +3,7 @@
 //
 
 #include <openssl/pem.h>
+#include <stdexcept>
 #include "privkey.h"
 #include "utils.h"
 
@@ -10,14 +11,14 @@ Privkey::Privkey(const char* file_name) {
     FILE *fp = fopen(file_name,"rb");
     if(fp == NULL) {
         log(1, "Unable to open private key file\n");
-        return;
+        throw std::runtime_error("Unable to open privkey file");
     }
 
     key = RSA_new();
     if (key == NULL) {
         log(2, "Unable to allocate RSA key\n");
         fclose(fp);
-        return;
+        throw std::runtime_error("Unable to allocate RSA key");
     }
 
     //key = PEM_read_RSA_PRIVKEY(fp, &key, NULL, NULL);
@@ -25,10 +26,13 @@ Privkey::Privkey(const char* file_name) {
     if (key == NULL) {
         log(1, "Unable to read private key from file %s\n", file_name);
         fclose(fp);
-        return;
+        throw std::runtime_error("Unable to read private key");
     }
 
     fclose(fp);
+}
+Privkey::Privkey() {
+    key = nullptr;
 }
 Privkey::~Privkey() {
     RSA_free(key);
