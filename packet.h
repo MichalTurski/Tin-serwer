@@ -115,7 +115,7 @@ public:
 	const char *getUnit() const;
 	float getMin() const;
 	float getMax() const;
-	DESC(std::string name, std::string unit, float min, float max);
+	DESC(std::string &name, std::string &unit, float min, float max);
 	//DESC(Packet &&packet);
 	DESC(unsigned char *buf, size_t bufSize): EncrptedPacket(buf, bufSize) {}
 };

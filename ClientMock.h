@@ -66,6 +66,9 @@ bool verifyAgainstClient(int sock, Pubkey &pubkey) {
 void *clientMock(void *) {
     int cliSock;
     struct sockaddr_in dstAddr;
+    Packet *packet;
+    std::string name = "Nazwa";
+    std::string unit = "szt";
 
     dstAddr.sin_family = AF_INET;
     dstAddr.sin_port = htons(1234);
@@ -83,16 +86,23 @@ void *clientMock(void *) {
     id.send(cliSock, nullptr);
     if (verifyAgainstServer(cliSock, privkey)) {
         if (verifyAgainstClient(cliSock, pubkey)) {
-            Packet *packet = Packet::packetFactory(cliSock, nullptr);
+            packet = Packet::packetFactory(cliSock, nullptr);
             if (KEY *keyPck = dynamic_cast<KEY *> (packet)) {
                 Sesskey sesskey(*keyPck, privkey);
+                delete(keyPck);
                 for(int i = 0; i<5; i++) {
-                    DESC desc("Nazwa", "szt", 1.2, 1.3);
+                    DESC desc(name, unit, 1.2, 1.3);
                     desc.send(cliSock, &sesskey);
+                    packet = Packet::packetFactory(cliSock, &sesskey);
+                    if(ACK *ack = dynamic_cast<ACK*> (packet)){
+                        std::cout << "Service id = "<< (int) ack->getId() << std::endl;
+                    }
                 }
                 EOT eot;
                 eot.send(cliSock, &sesskey);
                 return nullptr;
+            } else {
+                delete (packet);
             }
         }
     }

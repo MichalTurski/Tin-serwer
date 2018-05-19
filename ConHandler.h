@@ -14,8 +14,11 @@
 class ConHandler {
 private:
     std::map<int, Client*> idClientPairs;
-    std::map<uint32_t, Client*> addrClientPairs;
-    Server server;
+    std::map<uint32_t, Client*> addrClientPairs;//TODO: mutex to protect this structure
+    Server *server;
+
+    void registration(int desc, struct in_addr cliAddr);
+    void dataExchange(int desc, Client *client);
 public:
     ConHandler(std::string fileName);
     ~ConHandler();

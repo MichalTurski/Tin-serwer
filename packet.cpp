@@ -267,14 +267,14 @@ float DESC::getMax() const {
 	memcpy(&max, &buf[74], sizeof(float));
 	return max;
 }
-DESC::DESC(std::string name, std::string unit, float min, float max):
+DESC::DESC(std::string &name, std::string &unit, float min, float max):
 		EncrptedPacket(name.length() + 15) {// 1 byte for header, 1 byte for type, 1 for terminating 0, 4 for unit, 4 for min, 4 for max, total 15
 	if (unit.size() > 3) {
 	    delete[] buf;
 	    throw(std::runtime_error("Unit name is too long."));
 	}
 	buf[0] = PCK_DESC;
-	//TODO: buf[1] = ?;
+	buf[1] = 1;//TODO: buf[1] = ?;
 	memcpy(&buf[2], name.c_str(), name.size()+1);//TODO: change it to make name longer
 	memcpy(&buf[name.size() + 3], unit.c_str(), name.size()+1);
 	memcpy(&buf[name.size() + 7], &min, sizeof(float));

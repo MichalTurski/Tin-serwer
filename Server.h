@@ -7,14 +7,22 @@
 
 
 #include "privkey.h"
+#include "ServiceTable.h"
 
 class Server {
 private:
     Privkey privkey;
+    ServiceTable serviceTable;
 public:
     Server(const char *file);
-    Server() = default;
+//    Server();
+    ~Server();
+//    void loadPrivkey(const char file);
     bool verifyServer(int sockDesc) const;
+    unsigned char reserveId();
+    bool unreserveId(unsigned char id);
+    bool addService(unsigned char id, Service *service);
+    bool unregisterService(unsigned char id);
 };
 
 

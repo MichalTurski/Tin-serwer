@@ -15,15 +15,11 @@ ConHandler::ConHandler(std::string fileName) {
     int id;
     Client *client;
 
-//    OpenSSL_add_all_algorithms();
-//    OpenSSL_add_all_ciphers();
-//    ERR_load_crypto_strings();
-
     if (configfile.is_open()){
         configfile >> privkeyFile;
         if (! privkeyFile.empty()){
             try {
-                server = Server(privkeyFile.c_str());
+                server = new Server(privkeyFile.c_str());
             } catch (...) {
                 exit (-1);
             }
@@ -55,11 +51,16 @@ ConHandler::~ConHandler() {
     for (std::map<int, Client*>::iterator it = idClientPairs.begin(); it != idClientPairs.end(); ++it) {
         delete(it->second);
     }
+    delete(server);
 }
 void ConHandler::handle(int desc, struct in_addr cliAddr) {
     Client *client;
     std::map<uint32_t, Client*>::iterator ipIter;
-    std::map<int, Client*>::iterator idIter;
+    struct timeval tv;
+
+    /*tv.tv_sec = 5;//TODO
+    tv.tv_usec = 0;
+    setsockopt(desc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);*/
 
     ipIter = addrClientPairs.find(cliAddr.s_addr);
     if (ipIter != addrClientPairs.end()) {
@@ -67,23 +68,31 @@ void ConHandler::handle(int desc, struct in_addr cliAddr) {
         client = ipIter->second;
         //TODO
     } else {
-        // Client must be verified
-        Packet *packet = Packet::packetFactory(desc, nullptr);
-        if (ID *id = dynamic_cast<ID*> (packet)) {
-            idIter = idClientPairs.find(id->getId());
-            if (idIter != idClientPairs.end()) {
-                client = idIter->second;
-                if (client->initalize(desc, server)) {
-                    log(1, "Client number %d verified successful", id->getId());
-                    addrClientPairs[cliAddr.s_addr] = client; //verification succeed, now we will be finding client by ip
-                } else {
-                    log(2, "Failed to verify client\n");
-                }
-            } else {
-                log(2, "Wrong client number\n");
-            }
-        } else if (packet == nullptr) {} else{
-            log(2, "Wrong packet received, unable to verify client\n");
-        }
+        registration(desc, cliAddr);
     }
+}
+void ConHandler::registration(int desc, struct in_addr cliAddr) {
+    Client *client;
+    std::map<int, Client*>::iterator idIter;
+
+    Packet *packet = Packet::packetFactory(desc, nullptr);
+    if (ID *id = dynamic_cast<ID*> (packet)) {
+        idIter = idClientPairs.find(id->getId());
+        if (idIter != idClientPairs.end()) {
+            client = idIter->second;
+            if (client->initalize(desc, *server)) {
+                log(1, "Client number %d verified successful", id->getId());
+                addrClientPairs[cliAddr.s_addr] = client; //verification succeed, now we will be finding client by ip
+            } else {
+                log(2, "Failed to verify client\n");
+            }
+        } else {
+            log(2, "Wrong client number\n");
+        }
+    } else if (packet == nullptr) {} else{
+        log(2, "Wrong packet received, unable to verify client\n");
+    }
+}
+void ConHandler::dataExchange(int desc, Client *client) {
+
 }

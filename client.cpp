@@ -11,8 +11,36 @@
 RNG rng;
 
 Client::Client(int id, const char *pubkey): id(id), pubkey(pubkey) {}
+Client::~Client() {
+    for (auto&& i : digInputs)
+        delete(i.second);
+    for (auto&& i : analogInputs)
+        delete(i.second);
+    for (auto&& i : digOutputs)
+        delete(i.second);
+    for (auto&& i : analogOutputs)
+        delete(i.second);
+}
+void Client::unregisterServices(Server &server) {
+    for (auto&& i : digInputs) {
+        server.unregisterService(i.second->getId());
+        delete (i.second);
+    }
+    for (auto&& i : analogInputs) {
+        server.unregisterService(i.second->getId());
+        delete(i.second);
+    }
+    for (auto&& i : digOutputs) {
+        server.unregisterService(i.second->getId());
+        delete(i.second);
+    }
+    for (auto&& i : analogOutputs) {
+        server.unregisterService(i.second->getId());
+        delete(i.second);
+    }
+}
 
-bool Client::initalize(int sockDesc, const Server &server) {
+bool Client::initalize(int sockDesc, Server &server) {
     Packet *packet;
 
     if (verifyClient(sockDesc)){
@@ -23,17 +51,9 @@ bool Client::initalize(int sockDesc, const Server &server) {
             KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
             if (sesskeyPck->send(sockDesc, nullptr) > 0) {
                 delete(sesskeyPck);
-                packet = Packet::packetFactory(sockDesc, &sesskey);
-                while (DESC *desc = dynamic_cast<DESC*> (packet)){
-                    std::cout << desc->getName() << std::endl;
-                    delete(packet);
-                    packet  = Packet::packetFactory(sockDesc, &sesskey);
-                    if (dynamic_cast<EOT*> (packet)){
-                        std::cout << "all descriptors received\n";
-                        delete(packet);
-                        return (true);
-                    }
-                }
+                if (registerServices(sockDesc, server, sesskey))
+                    log(1, "Registered new client.");
+                    return true;
             }
             delete(sesskeyPck);
         }
@@ -67,4 +87,52 @@ bool Client::verifyClient(int sockDesc) const {
     }
     delete chall;
     return false;
+}
+bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sesskey) {
+    Packet *packet;
+    std::vector<Service*> services;
+    Service *service;
+    unsigned char id;
+    packet = Packet::packetFactory(sockDesc, &sesskey);
+    while (DESC *desc = dynamic_cast<DESC*> (packet)){
+        std::cout << desc->getName() << std::endl;
+        id = server.reserveId();
+        if (id > 0) {
+            service = Service::serviceFactory(id, desc->getDeviceClass(), desc->getName(),
+                                              desc->getUnit(), desc->getMin(), desc->getMax());
+            delete(packet);
+            services.push_back(service);
+            ACK ack(id);
+            if (ack.send(sockDesc, &sesskey) > 0) {
+                packet = Packet::packetFactory(sockDesc, &sesskey);
+                if (dynamic_cast<EOT *> (packet)) {
+                    delete (packet);
+                    for (auto &&i : services) {
+                        server.addService(i->getId(), i);
+                        if (auto j = dynamic_cast<DigitalIn*> (i))
+                            digInputs.insert(std::make_pair(j->getId(), j));
+                        if (auto&& j = dynamic_cast<AnalogIn*> (i))
+                            analogInputs.insert(std::make_pair(j->getId(), j));
+                        if (auto&& j = dynamic_cast<DigitalOut*> (i))
+                            digOutputs.insert(std::make_pair(j->getId(), j));
+                        if (auto&& j = dynamic_cast<AnalogOut*> (i))
+                            analogOutputs.insert(std::make_pair(j->getId(), j));
+                    }
+                    return (true);
+                }
+            }
+        } else {
+            delete(packet);
+            log(1, "Limit of services number have been reached.\n");
+            break;
+        }
+    }
+    NAK nak((unsigned char)0);
+    nak.send(sockDesc, &sesskey);
+    for (auto&& i : services) {
+        server.unreserveId(i->getId());
+        delete (i);
+    }
+    delete (packet);
+    return (false);
 }

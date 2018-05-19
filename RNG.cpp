@@ -8,18 +8,8 @@
 #include "utils.h"
 
 RNG::RNG() {
-	OPENSSL_config (nullptr);
-	ERR_load_crypto_strings ();
-    OpenSSL_add_all_ciphers();
-	OpenSSL_add_all_algorithms();
-	CRYPTO_malloc_init();
 }
 RNG::~RNG() {
-	ERR_free_strings ();
-	RAND_cleanup ();
-	EVP_cleanup ();
-	CONF_modules_free ();
-	ERR_remove_state (0);
 }
 
 int RNG::generate(unsigned char *buf,size_t size){

@@ -2,11 +2,34 @@
 // Created by michal on 11.05.18.
 //
 
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 #include "Server.h"
 #include "packet.h"
 #include "utils.h"
 
-Server::Server(const char *file): privkey(file) {}
+Server::Server(const char *file): privkey(file) {
+    OPENSSL_config (nullptr);
+    ERR_load_crypto_strings ();
+    OpenSSL_add_all_ciphers();
+    OpenSSL_add_all_algorithms();
+    CRYPTO_malloc_init();
+}
+/*Server::Server() {
+    OPENSSL_config (nullptr);
+    ERR_load_crypto_strings ();
+    OpenSSL_add_all_ciphers();
+    OpenSSL_add_all_algorithms();
+    CRYPTO_malloc_init();
+}*/
+Server::~Server() {
+    ERR_free_strings ();
+    RAND_cleanup ();
+    EVP_cleanup ();
+    CONF_modules_free ();
+    ERR_remove_state (0);
+}
 
 bool Server::verifyServer(int sockDesc) const {
     unsigned char ciphered[256];
@@ -28,4 +51,17 @@ bool Server::verifyServer(int sockDesc) const {
         log(2, "Client has disconected\n");
     }
     return false;
+}
+
+unsigned char Server::reserveId() {
+    return serviceTable.reserve();
+}
+bool Server::unreserveId(unsigned char id) {
+    return serviceTable.unreserve(id);
+}
+bool Server::addService(unsigned char id, Service *service) {
+    return serviceTable.push(service, id);
+}
+bool Server::unregisterService(unsigned char id) {
+    return serviceTable.remove(id);
 }
