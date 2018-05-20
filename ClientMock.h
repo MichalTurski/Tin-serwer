@@ -79,8 +79,8 @@ void *clientMock(void *) {
         std::cout <<"blad: conect"<<std::endl;
         return nullptr;
     }
-    Pubkey pubkey("pubkey.pem");
-    Privkey privkey("privkey.pem");
+    Pubkey pubkey("server-public.pem");
+    Privkey privkey("client-private.pem");
 
     ID id(1);
     id.send(cliSock, nullptr);

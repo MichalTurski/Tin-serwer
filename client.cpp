@@ -43,7 +43,7 @@ void Client::unregisterServices(Server &server) {
 bool Client::initalize(int sockDesc, Server &server) {
     Packet *packet;
 
-    if (verifyClient(sockDesc)){
+    if (verifyClient(sockDesc)) {
         if (server.verifyServer(sockDesc)) {
             Sesskey sesskey;
             unsigned char cipSesskey[256];
@@ -51,14 +51,15 @@ bool Client::initalize(int sockDesc, Server &server) {
             KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
             if (sesskeyPck->send(sockDesc, nullptr) > 0) {
                 delete(sesskeyPck);
-                if (registerServices(sockDesc, server, sesskey))
-                    log(1, "Registered new client.");
+                if (registerServices(sockDesc, server, sesskey)) {
+                    log(1, "Registered client number %d.", id);
                     return true;
+                }
             }
             delete(sesskeyPck);
         }
     }
-    log(2, "Failed to verify client\n");
+    log(2, "Failed to register client number %d\n", id);
     return (false);
 }
 
@@ -79,10 +80,10 @@ bool Client::verifyClient(int sockDesc) const {
                 return true;
 
             } else {
-                log(1, "Failed to verify response");
+                log(1, "Failed to verify challenge response, someone may be tying to do something nasty.\n");
             }
         } else {
-            log(2, "Unexpected packet type\n");
+            log(3, "Unexpected packet type, expected response to challenge.\n");
         }
     }
     delete chall;

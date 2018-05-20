@@ -23,7 +23,7 @@ Service* Service::serviceFactory(unsigned char id, unsigned char devClass, const
             service = new DigitalOut(id, name, unit);
             break;
         default:
-            log(2, "Not recognised service type\n");
+            log(3, "Not recognised service type\n");
             service = nullptr;
     }
     return service;

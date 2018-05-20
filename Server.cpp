@@ -24,11 +24,11 @@ Server::Server(const char *file): privkey(file) {
     CRYPTO_malloc_init();
 }*/
 Server::~Server() {
-    ERR_free_strings ();
-    RAND_cleanup ();
-    EVP_cleanup ();
-    CONF_modules_free ();
-    ERR_remove_state (0);
+//    ERR_free_strings ();
+//    RAND_cleanup ();
+//    EVP_cleanup ();
+//    CONF_modules_free ();
+//    ERR_remove_state (0);
 }
 
 bool Server::verifyServer(int sockDesc) const {
@@ -45,10 +45,10 @@ bool Server::verifyServer(int sockDesc) const {
                 delete challResp;
             }
         } else {
-            log(1, "Wrong type of message\n");
+            log(3, "Wrong type of message, expected CHALL.\n");
         }
     } else {
-        log(2, "Client has disconected\n");
+        log(3, "Client has disconected.\n");
     }
     return false;
 }

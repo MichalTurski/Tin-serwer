@@ -18,10 +18,10 @@ int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 		readed = read(soc_desc, &buf[i], (size_t) msg_size - i);
 		switch (readed) {
 			case -1:
-				log(2, "Reading from socket exited with: %s.\n", strerror(errno));
+				log(3, "Reading from socket exited with: %s.\n", strerror(errno));
 				return -1;
 			case 0:
-				log(2, "Client socket have been closed");
+				log(3, "Client socket have been closed");
 				return 0;
 		}
 		i += readed;
@@ -36,10 +36,10 @@ ssize_t writeTillDone(int soc_desc, const unsigned char *buf, ssize_t msg_size) 
 		written = write(soc_desc, &buf[i], (size_t) msg_size - i);
 		switch (written) {
 			case -1:
-				log(2, "Writing to socket exited with: %s.\n", strerror(errno));
+				log(3, "Writing to socket exited with: %s.\n", strerror(errno));
 				return -1;
 			case 0:
-				log(2, "Client socket have been closed");
+				log(3, "Client socket have been closed");
 				return 0;
 		}
 		i += written;
@@ -66,8 +66,8 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 		return nullptr;
 
 	if (is_crypted) {
-		if (sesskey == NULL) {
-			log(2, "Received encrypted message before setting sesskey.\n");
+		if (sesskey == nullptr) {
+			log(3, "Received encrypted message before setting session key.\n");
 			return nullptr;
 		}
 		expected_size = encryptedLen(plain_len);
@@ -90,7 +90,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			case (PCK_DESC):
 			case (PCK_VAL):
 			case (PCK_EXIT):
-				log(2, "This packet should be encrypted, but it is not.\n");
+				log(3, "Received packet should be encrypted, but it is not.\n");
 				delete[] new_buf;
 				delete[] encrypted;
 				return nullptr;
@@ -132,7 +132,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			new_packet = new ID(new_buf);
 			break;
 		default:
-			log(2, "Packet not recognised\n");
+			log(3, "Packet not recognised\n");
 			new_packet = nullptr;
 	}
 	delete[] new_buf;

@@ -35,8 +35,6 @@ int initSocket() {
 int main() {
     struct sockaddr_in clientAssoc;
     socklen_t assocSize;
-    //Server server("privkey.pem");
-    //Client client("pubkey.pem");
     ConHandler conHandler("configfile.conf");
     int socket = initSocket();
     pthread_t thread;
@@ -44,7 +42,6 @@ int main() {
 
     assocSize = sizeof(clientAssoc);
     int sock = accept(socket, (struct sockaddr*)&clientAssoc, &assocSize);
-//    client.initalize(sock, server);
     conHandler.handle(sock, clientAssoc.sin_addr);
     close(sock);
     close(socket);

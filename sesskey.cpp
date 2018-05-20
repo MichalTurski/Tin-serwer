@@ -9,7 +9,7 @@ extern RNG rng;
 
 Sesskey::Sesskey() {
 	if (rng.generate(key, (size_t) 16) == -1) {
-		log(1, "Unable to create sesskey\n");
+		log(3, "Unable to create sesskey\n");
 	}
 /*	key[0] = 'a';
 	key[1] = 'l';
@@ -20,14 +20,16 @@ Sesskey::Sesskey() {
 	key[13] = 't';
 	key[14] = 'a';
 	key[15] = 0;*/
-	if (!(ctx = EVP_CIPHER_CTX_new()))
-	    log(1, "Unable to create OPENSSL context.\n");
+	/*if (!(ctx = EVP_CIPHER_CTX_new()))
+	    log(3, "Unable to create OPENSSL context.\n");*/
+	ctx = EVP_CIPHER_CTX_new();
 }
 Sesskey::Sesskey(const KEY &keyPck, const Privkey &privkey) {
-	if (!(ctx = EVP_CIPHER_CTX_new()))
-		log(1, "Unable to create OPENSSL context.\n");
+	/*if (!(ctx = EVP_CIPHER_CTX_new()))
+		log(3, "Unable to create OPENSSL context.\n");*/
+	ctx = EVP_CIPHER_CTX_new();
 	if (privkey.decrypt(keyPck.getKeyBuf(), 256, key) == -1){
-	    log(1, "Unable to decript session key\n");
+	    log(3, "Unable to decrypt session key\n");
 	}
 //	memcpy(key, keyPck.getKeyBuf(), 16);
 }
@@ -43,27 +45,23 @@ int Sesskey::encrypt(unsigned char *dest, const unsigned char *src, size_t src_s
 
 	ciphertext_len = 0;
 	if (rng.generate(iv, (size_t) 16) == -1) {
-		log(1, "Unable to create IV\n");
+		log(3, "Unable to create IV\n");
 		return -1;
 	}
-/*	iv[0] = 'J';
-	iv[1] = 'a';
-	iv[3] = 'n';
-	iv[4] = 0;*/
 
 	if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv)) {
-		log(1, "Unable to init EVP encryption.\n");
+		log(3, "Unable to init EVP encryption.\n");
 		return -1;
 	}
 	//while (ciphertext_len < src_size) {
 		if (1 != EVP_EncryptUpdate(ctx, dest, &len, src, src_size)){
-			log(1, "Unable to encrypt.\n");
+			log(3, "Unable to encrypt.\n");
 			return -1;
 		}
 		ciphertext_len += len;
 	//}
 	if(1 != EVP_EncryptFinal_ex(ctx, dest + len, &len)) {
-		log(1, "Unable to finalize EVP encryption.\n");
+		log(3, "Unable to finalize EVP encryption.\n");
 		return -1;
 	}
 	ciphertext_len += len;
@@ -84,18 +82,18 @@ int Sesskey::decrypt(unsigned char *dest, const unsigned char *src, size_t src_s
 
 	iv = &src[src_size - 16];// -16 for iv, -1 for zero-based counting
 	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv)) {
-		log(1, "Unable to init EVP decryption.\n");
+		log(3, "Unable to init EVP decryption.\n");
 		return -1;
 	}
 
   	if (1 != EVP_DecryptUpdate(ctx, dest, &len, src, msg_buf_size)) {
-		log(1, "Unable to decrypt.\n");
+		log(3, "Unable to decrypt.\n");
 		return -1;
 	}
 
   	if (1 != EVP_DecryptFinal_ex(ctx, dest + len, &len)) {
 		ERR_print_errors_fp(stderr);
-		log(1, "Unable to finalize EVP encryption.\n");
+		log(3, "Unable to finalize EVP encryption.\n");
 		return -1;
 	}
 

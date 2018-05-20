@@ -6,20 +6,20 @@
 Pubkey::Pubkey(const char* file_name) {
 	FILE *fp = fopen(file_name,"rb");
 	if(fp == NULL) {
-		log(1, "Unable to open public key file\n");
+		log(1, "CRITICAL: Unable to open public key file\n");
 		throw std::runtime_error("Unable to open pubkey file");
 	}
 	
 	key = RSA_new();
 	if (key == NULL) {
-		log(2, "Unable to allocate RSA key\n"); 
+		log(1, "CRITICAL: Unable to allocate RSA key\n");
 		fclose(fp);
 		throw std::runtime_error("Unable to allocate RSA key");
 	}
 	
 	key = PEM_read_RSA_PUBKEY(fp, &key, NULL, NULL);
 	if (key == NULL) {
-		log(1, "Unable to read public key from file %s\n", file_name);
+		log(1, "CRITICAL: Unable to read public key from file %s\n", file_name);
 		fclose(fp);
 		throw std::runtime_error("Unable to read public key");
 	}

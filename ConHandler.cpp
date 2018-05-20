@@ -58,17 +58,19 @@ void ConHandler::handle(int desc, struct in_addr cliAddr) {
     std::map<uint32_t, Client*>::iterator ipIter;
     struct timeval tv;
 
-    /*tv.tv_sec = 5;//TODO
+    tv.tv_sec = 5;//TODO
     tv.tv_usec = 0;
-    setsockopt(desc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);*/
-
-    ipIter = addrClientPairs.find(cliAddr.s_addr);
-    if (ipIter != addrClientPairs.end()) {
-        //Client have been verified, we can do regular job
-        client = ipIter->second;
-        //TODO
+    if (setsockopt(desc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) == 0) {
+        ipIter = addrClientPairs.find(cliAddr.s_addr);
+        if (ipIter != addrClientPairs.end()) {
+            //Client have been verified, we can do regular job
+            client = ipIter->second;
+            //TODO
+        } else {
+            registration(desc, cliAddr);
+        }
     } else {
-        registration(desc, cliAddr);
+        log(3, "Failed when setting time limit on listening socket.\n");
     }
 }
 void ConHandler::registration(int desc, struct in_addr cliAddr) {
@@ -81,16 +83,13 @@ void ConHandler::registration(int desc, struct in_addr cliAddr) {
         if (idIter != idClientPairs.end()) {
             client = idIter->second;
             if (client->initalize(desc, *server)) {
-                log(1, "Client number %d verified successful", id->getId());
                 addrClientPairs[cliAddr.s_addr] = client; //verification succeed, now we will be finding client by ip
-            } else {
-                log(2, "Failed to verify client\n");
             }
         } else {
-            log(2, "Wrong client number\n");
+            log(2, "Client with unrecognized number %d tried to register\n", id->getId());
         }
     } else if (packet == nullptr) {} else{
-        log(2, "Wrong packet received, unable to verify client\n");
+        log(3, "Wrong packet type received, expected ID. Unable to verify client.\n");
     }
 }
 void ConHandler::dataExchange(int desc, Client *client) {

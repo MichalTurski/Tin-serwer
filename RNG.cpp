@@ -15,7 +15,7 @@ RNG::~RNG() {
 int RNG::generate(unsigned char *buf,size_t size){
 	int rc = RAND_bytes(buf, size);
 	if(rc != 1) {
-		log(1, "Random genration failed\n");
+		log(3, "Random generating failed\n");
 		return -1;
 	}
 	return 0;

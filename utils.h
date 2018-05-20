@@ -3,6 +3,6 @@
 
 #include <cstdio>
 
-#define log(level, ...)	printf(__VA_ARGS__)
+#define log(level, ...) printf("[LOG LEVEL = %d] ", level); printf(__VA_ARGS__); fflush(stdout)
 
 #endif //_L_UTILS_IOT_

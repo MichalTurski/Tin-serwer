@@ -10,13 +10,13 @@
 Privkey::Privkey(const char* file_name) {
     FILE *fp = fopen(file_name,"rb");
     if(fp == NULL) {
-        log(1, "Unable to open private key file\n");
+        log(1, "CRITICAL: Unable to open private key file\n");
         throw std::runtime_error("Unable to open privkey file");
     }
 
     key = RSA_new();
     if (key == NULL) {
-        log(2, "Unable to allocate RSA key\n");
+        log(1, "CRITICAL: Unable to allocate RSA key\n");
         fclose(fp);
         throw std::runtime_error("Unable to allocate RSA key");
     }
@@ -24,7 +24,7 @@ Privkey::Privkey(const char* file_name) {
     //key = PEM_read_RSA_PRIVKEY(fp, &key, NULL, NULL);
     key = PEM_read_RSAPrivateKey(fp, &key, NULL, NULL);
     if (key == NULL) {
-        log(1, "Unable to read private key from file %s\n", file_name);
+        log(1, "CRITICAL: Unable to read private key from file %s\n", file_name);
         fclose(fp);
         throw std::runtime_error("Unable to read private key");
     }
