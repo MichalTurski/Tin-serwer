@@ -32,13 +32,12 @@ Pubkey::~Pubkey() {
 /*data size have to be big enough to keep decrypted message. */
 int Pubkey::decrypt (const unsigned char *encrypted, size_t encrypted_len, unsigned char *data) const {
 	int result;
-	result = RSA_public_decrypt(encrypted_len, encrypted, data, key, RSA_PKCS1_PADDING);
+	result = RSA_public_decrypt(encrypted_len, encrypted, data, key, RSA_PKCS1_OAEP_PADDING);
 	return result;
 }
 int Pubkey::encrypt(const unsigned char *data, size_t data_len, unsigned char *encrypted) const {
 	int result;
-	result = RSA_public_encrypt(data_len, data, encrypted, key, RSA_PKCS1_PADDING);
-	//result = RSA_public_encrypt(data_len, data, encrypted, key, RSA_PKCS1_PADDING);
+	result = RSA_public_encrypt(data_len, data, encrypted, key, RSA_PKCS1_OAEP_PADDING);
 	return result;
 }
 
@@ -57,4 +56,8 @@ bool Pubkey::verify_resp(const unsigned char *resp, size_t resp_size, const unsi
 	}
 	delete[] buf;
 	return true;
+}
+
+bool Pubkey::verify_sign(const unsigned char *data, size_t data_len, const unsigned char *sign, size_t sign_len) const {
+	return (bool)RSA_verify(NID_sha1, data, data_len, sign, sign_len, key);
 }

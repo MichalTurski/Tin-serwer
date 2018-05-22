@@ -40,11 +40,14 @@ Privkey::~Privkey() {
 /*data size have to be big enough to keep decrypted message. */
 int Privkey::decrypt (const unsigned char *encrypted, size_t encrypted_len, unsigned char *data) const {
     int result;
-    result = RSA_private_decrypt(encrypted_len, encrypted, data, key, RSA_PKCS1_PADDING);
+    result = RSA_private_decrypt(encrypted_len, encrypted, data, key, RSA_PKCS1_OAEP_PADDING);
     return result;
 }
 int Privkey::encrypt(const unsigned char *data, size_t data_len, unsigned char *encrypted) const {
     int result;
-    result = RSA_private_encrypt(data_len, data, encrypted, key, RSA_PKCS1_PADDING);
+    result = RSA_private_encrypt(data_len, data, encrypted, key, RSA_PKCS1_OAEP_PADDING);
     return result;
+}
+int Privkey::sign(const unsigned char *data, size_t data_len, unsigned char *sign, unsigned int *sign_len) const {
+    return RSA_sign(NID_sha1, data, data_len, sign, sign_len, key);
 }

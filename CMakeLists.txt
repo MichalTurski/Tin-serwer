@@ -4,6 +4,8 @@ project(Serwer)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS -Wall)
 
+set(CMAKE_CXX_FLAGS -DNO_CLIENT_MOCK)
+
 include_directories(/usr/lib/)
 link_libraries(ssl)
 link_libraries(crypto)
@@ -18,4 +20,5 @@ add_executable(Serwer main.cpp
         Server.cpp Server.h
         ConHandler.cpp ConHandler.h
         Service.cpp Service.h
-        utils.h ClientMock.h ServiceTable.cpp ServiceTable.h)
+        ServiceTable.cpp ServiceTable.h
+        utils.h ClientMock.h)

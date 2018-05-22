@@ -16,13 +16,14 @@
 #include "utils.h"
 
 bool verifyAgainstServer(int sock, Privkey &privkey) {
-    unsigned char ciphered[256];
+    unsigned char sign[256];
+    unsigned int signLen;
     Packet *packet = Packet::packetFactory(sock, nullptr);
     if (packet != nullptr) {
         if (CHALL *chall = dynamic_cast<CHALL *>(packet)) {
-            if (privkey.encrypt(chall->getChall(), 8, ciphered) > 0) {
+            if (privkey.sign(chall->getChall(), 8, sign, &signLen) > 0) {
                 delete (packet);
-                CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(ciphered);
+                CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(sign);
                 if (challResp->send(sock, nullptr) > 0) {
                     delete (challResp);
                     return true;
@@ -47,7 +48,7 @@ bool verifyAgainstClient(int sock, Pubkey &pubkey) {
     if (chall->send(sock, nullptr) > 0) {
         response = Packet::packetFactory(sock, nullptr);
         if (CHALL_RESP *challResp = dynamic_cast<CHALL_RESP *> (response)) {
-            if (pubkey.verify_resp(challResp->getResp(), 256, random, 8)) {
+            if (pubkey.verify_sign( random, 8, challResp->getResp(), 256)) {
                 delete(chall);
                 return true;
 

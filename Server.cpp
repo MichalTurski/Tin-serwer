@@ -14,7 +14,7 @@ Server::Server(const char *file): privkey(file) {
     ERR_load_crypto_strings ();
     OpenSSL_add_all_ciphers();
     OpenSSL_add_all_algorithms();
-    CRYPTO_malloc_init();
+    //CRYPTO_malloc_init();
 }
 /*Server::Server() {
     OPENSSL_config (nullptr);
@@ -32,12 +32,13 @@ Server::~Server() {
 }
 
 bool Server::verifyServer(int sockDesc) const {
-    unsigned char ciphered[256];
+    unsigned char sign[256];
+    unsigned int signLen;
     Packet *packet = Packet::packetFactory(sockDesc, nullptr);
     if (packet != nullptr) {
         if (CHALL *chall = dynamic_cast<CHALL *>(packet)) {
-            privkey.encrypt(chall->getChall(), 8, ciphered);
-            CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(ciphered);
+            privkey.sign(chall->getChall(), 8, sign, &signLen);
+            CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(sign);
             if (challResp->send(sockDesc, nullptr) > 0) {
                 delete challResp;
                 return true;

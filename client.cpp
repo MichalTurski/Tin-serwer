@@ -68,14 +68,11 @@ bool Client::verifyClient(int sockDesc) const {
     Packet *response;
 
     rng.generate(random, 8);
-    /*random[0] = 'a';
-    random[1] = 'l';
-    random[2] = 'a';*/
     CHALL *chall = CHALL::createFromRandom(random);
     if (chall->send(sockDesc, nullptr) > 0) {
         response = Packet::packetFactory(sockDesc, nullptr);
         if (CHALL_RESP *challResp = dynamic_cast<CHALL_RESP *> (response)) {
-            if (pubkey.verify_resp(challResp->getResp(), 256, random, 8)) {
+            if (pubkey.verify_sign(random, 8, challResp->getResp(), 256)) {
                 delete chall;
                 return true;
 

@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <zconf.h>
+#include <fstream>
 #include "RNG.h"
 #include "packet.h"
 #include "privkey.h"
@@ -37,8 +38,10 @@ int main() {
     socklen_t assocSize;
     ConHandler conHandler("configfile.conf");
     int socket = initSocket();
+#ifndef NO_CLIENT_MOCK
     pthread_t thread;
     pthread_create(&thread, NULL, clientMock, NULL);
+#endif //NO_CLIENT_MOCK
 
     assocSize = sizeof(clientAssoc);
     int sock = accept(socket, (struct sockaddr*)&clientAssoc, &assocSize);
@@ -46,7 +49,9 @@ int main() {
     close(sock);
     close(socket);
 
+#ifndef NO_CLIENT_MOCK
     pthread_join(thread, NULL);
+#endif //NO_CLIENT_MOCK
 
     return 0;
 }

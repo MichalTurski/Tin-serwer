@@ -10,6 +10,7 @@ private:
 public:
 	int decrypt(const unsigned char *encrypted, size_t encrypted_len, unsigned char *data) const;
 	int encrypt(const unsigned char *data, size_t data_len, unsigned char *encrypted) const;
+	bool verify_sign(const unsigned char *data, size_t data_len, const unsigned char *sign, size_t sign_len) const;
 	Pubkey(const char* file_name);
 	~Pubkey();
 	bool verify_resp(const unsigned char *resp, size_t resp_size, const unsigned char *chall, size_t chal_size) const;
