@@ -49,5 +49,10 @@ int Privkey::encrypt(const unsigned char *data, size_t data_len, unsigned char *
     return result;
 }
 int Privkey::sign(const unsigned char *data, size_t data_len, unsigned char *sign, unsigned int *sign_len) const {
-    return RSA_sign(NID_sha1, data, data_len, sign, sign_len, key);
+    SHA_CTX sha_ctx = { 0 };
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    SHA1_Init(&sha_ctx);
+    SHA1_Update(&sha_ctx, data, data_len);
+    SHA1_Final(digest, &sha_ctx);
+    return RSA_sign(NID_sha1, digest, SHA_DIGEST_LENGTH, sign, sign_len, key);
 }

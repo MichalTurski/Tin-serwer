@@ -18,7 +18,7 @@ int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 		readed = read(soc_desc, &buf[i], (size_t) msg_size - i);
 		switch (readed) {
 			case -1:
-				log(3, "Reading from socket exited with: %s.\n", strerror(errno));
+				log(3, "Reading from socket exited with: %s.", strerror(errno));
 				return -1;
 			case 0:
 				log(3, "Client socket have been closed");
@@ -67,7 +67,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 
 	if (is_crypted) {
 		if (sesskey == nullptr) {
-			log(3, "Received encrypted message before setting session key.\n");
+			log(3, "Received encrypted message before setting session key.");
 			return nullptr;
 		}
 		expected_size = encryptedLen(plain_len);
@@ -82,7 +82,10 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 
 	if (is_crypted) {
 		sesskey->decrypt(new_buf, encrypted, expected_size);
+		log(4, "Received encrypted packet, plaintext length = %d, encrpypted length = %d.",
+			plain_len, encryptedLen(plain_len));
 	} else {
+		log(4, "Received plaintext packet, length = %d.", plain_len);
 		switch (encrypted[0]){
 			case (PCK_ACK):
 			case (PCK_NAK):
@@ -90,14 +93,13 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			case (PCK_DESC):
 			case (PCK_VAL):
 			case (PCK_EXIT):
-				log(3, "Received packet should be encrypted, but it is not.\n");
+				log(3, "Received packet should be encrypted, but it is not.");
 				delete[] new_buf;
 				delete[] encrypted;
 				return nullptr;
 		}
 		memcpy(new_buf, encrypted, expected_size);
 	}
-	//log(2, "aaa");
 	delete[] encrypted;
 
 	switch (new_buf[0]){
@@ -132,7 +134,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 			new_packet = new ID(new_buf);
 			break;
 		default:
-			log(3, "Packet not recognised\n");
+			log(3, "Packet not recognised");
 			new_packet = nullptr;
 	}
 	delete[] new_buf;
@@ -255,16 +257,16 @@ const char *DESC::getName() const {
 	return reinterpret_cast<char*> (&buf[2]);
 }
 const char *DESC::getUnit() const {
-	return reinterpret_cast<char*> (&buf[66]);
+	return reinterpret_cast<char*> (&buf[buf_size - 13]);
 }
 float DESC::getMin() const {
 	float min;
-	memcpy(&min, &buf[70], sizeof(float));
+	memcpy(&min, &buf[buf_size - 9], sizeof(float));
 	return min;
 }
 float DESC::getMax() const {
 	float max;
-	memcpy(&max, &buf[74], sizeof(float));
+	memcpy(&max, &buf[buf_size - 5], sizeof(float));
 	return max;
 }
 DESC::DESC(std::string &name, std::string &unit, float min, float max):

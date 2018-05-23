@@ -55,11 +55,12 @@ bool Client::initalize(int sockDesc, Server &server) {
                     log(1, "Registered client number %d.", id);
                     return true;
                 }
+            } else {
+                delete(sesskeyPck);
             }
-            delete(sesskeyPck);
         }
     }
-    log(2, "Failed to register client number %d\n", id);
+    log(2, "Failed to register client number %d", id);
     return (false);
 }
 
@@ -74,13 +75,14 @@ bool Client::verifyClient(int sockDesc) const {
         if (CHALL_RESP *challResp = dynamic_cast<CHALL_RESP *> (response)) {
             if (pubkey.verify_sign(random, 8, challResp->getResp(), 256)) {
                 delete chall;
+                log(3, "Client number %d verified against server.", id);
                 return true;
 
             } else {
-                log(1, "Failed to verify challenge response, someone may be tying to do something nasty.\n");
+                log(1, "Failed to verify challenge response, someone may be tying to do something nasty.");
             }
         } else {
-            log(3, "Unexpected packet type, expected response to challenge.\n");
+            log(3, "Unexpected packet type, expected response to challenge.");
         }
     }
     delete chall;
@@ -121,7 +123,7 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
             }
         } else {
             delete(packet);
-            log(1, "Limit of services number have been reached.\n");
+            log(1, "Limit of services number have been reached.");
             break;
         }
     }

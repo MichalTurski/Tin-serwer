@@ -11,8 +11,10 @@
 #include <arpa/inet.h>
 #include <zconf.h>
 #include <iostream>
+#include "RNG.h"
 #include "privkey.h"
 #include "pubkey.h"
+#include "packet.h"
 #include "utils.h"
 
 bool verifyAgainstServer(int sock, Privkey &privkey) {
@@ -72,7 +74,7 @@ void *clientMock(void *) {
     std::string unit = "szt";
 
     dstAddr.sin_family = AF_INET;
-    dstAddr.sin_port = htons(1234);
+    dstAddr.sin_port = htons(12345);
     dstAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     cliSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 

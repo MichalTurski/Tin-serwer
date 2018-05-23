@@ -59,5 +59,10 @@ bool Pubkey::verify_resp(const unsigned char *resp, size_t resp_size, const unsi
 }
 
 bool Pubkey::verify_sign(const unsigned char *data, size_t data_len, const unsigned char *sign, size_t sign_len) const {
-	return (bool)RSA_verify(NID_sha1, data, data_len, sign, sign_len, key);
+	SHA_CTX sha_ctx = { 0 };
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    SHA1_Init(&sha_ctx);
+    SHA1_Update(&sha_ctx, data, data_len);
+    SHA1_Final(digest, &sha_ctx);
+	return (bool)RSA_verify(NID_sha1, digest, SHA_DIGEST_LENGTH, sign, sign_len, key);
 }

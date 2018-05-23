@@ -14,7 +14,7 @@ Server::Server(const char *file): privkey(file) {
     ERR_load_crypto_strings ();
     OpenSSL_add_all_ciphers();
     OpenSSL_add_all_algorithms();
-    //CRYPTO_malloc_init();
+    CRYPTO_malloc_init();
 }
 /*Server::Server() {
     OPENSSL_config (nullptr);
@@ -41,15 +41,16 @@ bool Server::verifyServer(int sockDesc) const {
             CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(sign);
             if (challResp->send(sockDesc, nullptr) > 0) {
                 delete challResp;
+                log(3, "Server verification against client succeed.");
                 return true;
             } else {
                 delete challResp;
             }
         } else {
-            log(3, "Wrong type of message, expected CHALL.\n");
+            log(3, "Wrong type of message, expected CHALL.");
         }
     } else {
-        log(3, "Client has disconected.\n");
+        log(3, "Client has disconected.");
     }
     return false;
 }
