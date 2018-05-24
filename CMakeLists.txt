@@ -17,9 +17,9 @@ add_executable(Serwer main.cpp
         pubkey.cpp pubkey.h
         RNG.cpp RNG.h
         sesskey.cpp sesskey.h
+        ConHandler.cpp ConHandler.h
         client.cpp client.h
         Server.cpp Server.h
-        ConHandler.cpp ConHandler.h
         Service.cpp Service.h
         ServiceTable.cpp ServiceTable.h
         utils.h ClientMock.h

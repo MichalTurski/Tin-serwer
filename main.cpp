@@ -53,10 +53,10 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
         } else {
             log(1, "Succeed in disconnecting all clients, exiting.");
         }
+        lock.unlock();
     } else {
         log(1, "There are no registered clients. Exiting.");
     }
-//    log(1, "Exiting.");
     end = true;
     shutdown(sockfd, SHUT_RDWR);
 }

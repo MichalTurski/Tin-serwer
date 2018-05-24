@@ -12,6 +12,8 @@
 
 #include "client.h"
 
+class Client;
+
 class ConHandler {
 private:
     std::map<uint8_t, Client*> idClientPairs;
@@ -31,6 +33,7 @@ public:
     void handle(int desc, struct in_addr &cliAddr);
     void setExit();
     bool clientsRegistered();
+    bool unregisterClient(uint8_t id);
 };
 
 /*

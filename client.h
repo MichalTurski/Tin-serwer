@@ -5,11 +5,16 @@
 #include "pubkey.h"
 #include "Server.h"
 #include "sesskey.h"
+#include "ConHandler.h"
+
+class ConHandler;
 
 class Client {
 private:
 	uint8_t id;
 	Pubkey pubkey;
+	ConHandler &conHandler;
+
 	std::map<unsigned char, DigitalIn*> digInputs;
 	std::map<unsigned char, AnalogIn*> analogInputs;
 	std::map<unsigned char, DigitalOut*> digOutputs;
@@ -20,9 +25,10 @@ private:
 	bool getValues(int sockDesc, Sesskey *sesskey, Packet **unused);
 	bool setValues(int sockDesc, Sesskey *sesskey);
 	bool setExit(int sockDesc, Sesskey *sesskey);
+	bool tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused);
 public:
 	void unregisterServices(Server &server);
-	Client(int id, const char *pubkey);
+	Client(int id, const char *pubkey, ConHandler &conHandler);
 	~Client();
 	bool initalize(int sockDesc, Server &server);
 	uint8_t getId() const;

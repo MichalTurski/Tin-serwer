@@ -27,7 +27,7 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
                 if (configfile >> devicePubkeyFile){
                     try {
                         id = std::stoi(deviceId);
-                        client = new Client(id, devicePubkeyFile.c_str());
+                        client = new Client(id, devicePubkeyFile.c_str(), *this);
                     } catch (...) {
                         log(1, "Unable to register client");
                         exit (-1);
@@ -48,7 +48,7 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
     exit (-1);
 }
 ConHandler::~ConHandler() {
-    for (std::map<uint8_t , Client*>::iterator it = idClientPairs.begin(); it != idClientPairs.end(); ++it) {
+    for (auto it = idClientPairs.begin(); it != idClientPairs.end(); ++it) {
         delete(it->second);
     }
     delete(server);
@@ -70,6 +70,7 @@ void ConHandler::handle(int desc, struct in_addr &cliAddr) {
             Packet *unused = tryDataExchange(desc, client);
             if (dynamic_cast<ID*> (unused)) {
                 log(2, "Data exchange with client number %d failed, he is trying to verify.", client->getId());
+                addrClientPairs.erase(cliAddr.s_addr);//As client thinks he is not verified, we remove it from registered.
                 registration(desc, cliAddr, unused);
             }
             delete (unused);
@@ -115,6 +116,9 @@ Packet *ConHandler::tryDataExchange(int desc, Client *client) {
             log(1, "Succeed in disconnecting client number &d.", client->getId());
             std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
             addrClientPairs.erase(client->getId());
+            if (addrClientPairs.empty()){
+                readyToExit.notify_one();
+            }
             uniqueLock.unlock();
         } else {
             log(2, "Data exchange with client %d succeed.", client->getId());
@@ -132,6 +136,22 @@ void ConHandler::getReadyToExit(std::condition_variable **ready, std::mutex **re
 bool ConHandler::clientsRegistered() {
     std::shared_lock<std::shared_timed_mutex> lock(addrClientMutex);
     return (!addrClientPairs.empty());
+}
+bool ConHandler::unregisterClient(uint8_t id) {
+    std::map<uint32_t , Client*>::iterator iter;
+    Client *client = idClientPairs[id];
+    std::shared_lock<std::shared_timed_mutex> sharedLock(addrClientMutex);
+    for (iter = addrClientPairs.begin(); iter != addrClientPairs.end(); ++iter) {
+        if (iter->second == client){
+            sharedLock.unlock();
+            std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
+            addrClientPairs.erase(iter->first);
+            uniqueLock.unlock();
+            client->unregisterServices(*server);
+            return true;
+        }
+    }
+    return false;
 }
 
 void conHandle(int id, ConHandler &conHandler, int desc, struct in_addr cliAddr) {

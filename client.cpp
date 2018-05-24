@@ -10,7 +10,7 @@
 
 RNG rng;
 
-Client::Client(int id, const char *pubkey): id(id), pubkey(pubkey) {}
+Client::Client(int id, const char *pubkey, ConHandler &conHandler): id(id), pubkey(pubkey), conHandler(conHandler) {}
 Client::~Client() {
     for (auto&& i : digInputs)
         delete(i.second);
@@ -159,6 +159,31 @@ bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
                         return true;
                     }
                 }
+            } else {
+                if (tryUnregister(sockDesc, &sesskey, unused)){
+                    log(2, "Data exchange with client %d succeed.", id);
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused) {
+    Packet *packet;
+
+    if (dynamic_cast<EXIT*> (*unused)){
+        delete(*unused);
+        *unused = nullptr;
+        ACK ack((unsigned char) 0);
+        if (ack.send(sockDesc, sesskey)) {
+            packet = Packet::packetFactory(sockDesc, sesskey);
+            if (dynamic_cast<EOT*> (packet)){
+                log(1, "Client &d requested exiting, unregistering it.", id);
+                conHandler.unregisterClient(id);
+                return true;
+            } else {
+                log(3, "Client &d requested exiting, responded ACK, expected EOT, but not received.", id);
             }
         }
     }
@@ -171,8 +196,8 @@ bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
 
     packet = Packet::packetFactory(sockDesc, sesskey);
     if (dynamic_cast<VAL*> (packet) || dynamic_cast<EOT*> (packet)) {
-        while (!(dynamic_cast<EOT*> (packet))){
-            if (auto val = dynamic_cast<VAL*> (packet)) {
+        while (!(dynamic_cast<EOT *> (packet))) {
+            if (auto val = dynamic_cast<VAL *> (packet)) {
                 if ((digInIter = digInputs.find(val->getServiceId())) != digInputs.end()) {
                     digInIter->second->setVal(val->getValue());
                     digInIter->second->setTimestamp(val->getTimestamp());
@@ -180,16 +205,15 @@ bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
                     anInIter->second->setVal(val->getValue());
                     anInIter->second->setTimestamp(val->getTimestamp());
                 } else {
-                    delete(packet);
-                    log(2,"Client %d sent value of service %d which is not its input", id, val->getServiceId());
+                    delete (packet);
+                    log(2, "Client %d sent value of service %d which is not its input", id, val->getServiceId());
                     return false;
                 }
-                delete(packet);
+                delete (packet);
                 packet = Packet::packetFactory(sockDesc, sesskey);
             } else {
-                delete(packet);
-                log(3, "Wrong packet type received during data exchange with client %d, expected VAl or EOT",
-                    id);
+                delete (packet);
+                log(3, "Wrong packet type received during data exchange with client %d, expected VAl or EOT", id);
                 return false;
             }
         }
