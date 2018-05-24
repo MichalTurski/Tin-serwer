@@ -63,28 +63,36 @@ int main() {
     if (socket < 0) {
         exit (-1);
     }
-#ifndef NO_TERMINATION
     sigset_t termset;
     sigemptyset(&termset);
     sigaddset(&termset, SIGINT);
     pthread_sigmask(SIG_BLOCK, &termset, nullptr);
+#ifndef NO_TERMINATION
     std::thread terminationThread(terminationHandler, std::ref(termset),
                                   std::ref(conHandler), std::ref(end), socket);
 #endif //NO_TERMINATION
+    sigaddset(&termset, SIGPIPE);
+    pthread_sigmask(SIG_BLOCK, &termset, nullptr);
+#ifndef NO_THREAD_POOL
     ctpl::thread_pool tp(4);
+#endif //NOTHREAD_POOL
 #ifndef NO_CLIENT_MOCK
     std::thread mock(clientMock);
 #endif //NO_CLIENT_MOCK
     assocSize = sizeof(clientAssoc);
     while(!end) {
         connectionDesc = accept(socket, (struct sockaddr *) &clientAssoc, &assocSize);
-        if (connectionDesc > 0) {
-            conHandler.handle(connectionDesc, clientAssoc.sin_addr);
+        if (connectionDesc >= 0) {
+#ifndef NO_THREAD_POOL
             tp.push(conHandle, std::ref(conHandler), connectionDesc, clientAssoc.sin_addr);
+#else
+            conHandler.handle(connectionDesc, clientAssoc.sin_addr);
+#endif //NOTHREAD_POOL
         }
     }
+#ifndef NO_THREAD_POOL
     tp.stop(true);
-    close(connectionDesc);
+#endif //NOTHREAD_POOL
     close(socket);
 
 #ifndef NO_CLIENT_MOCK

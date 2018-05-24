@@ -43,7 +43,6 @@ ssize_t writeTillDone(int soc_desc, const unsigned char *buf, ssize_t msg_size) 
 }
 
 inline int encryptedLen(int plain_len) {
-	//return (plain_len / 16 + 2) *16;//+1 is for padding, another +1 is for iv, therefore +2
     return (plain_len + (16 - plain_len % 16) + 16);// message_size + padding + iv
 }
 

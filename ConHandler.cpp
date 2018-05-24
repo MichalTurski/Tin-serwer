@@ -3,7 +3,9 @@
 //
 
 #include <fstream>
+#include <unistd.h>
 #include <openssl/err.h>
+
 #include "ConHandler.h"
 #include "utils.h"
 #include "packet.h"
@@ -83,6 +85,7 @@ void ConHandler::handle(int desc, struct in_addr &cliAddr) {
     } else {
         log(3, "Failed when setting time limit on listening socket.");
     }
+    close(desc);
 }
 void ConHandler::registration(int desc, struct in_addr cliAddr, Packet *unused) {
     Client *client;

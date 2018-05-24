@@ -103,6 +103,7 @@ void clientMock() {
                 }
                 EOT eot;
                 eot.send(cliSock, &sesskey);
+                close(cliSock);
                 return;
             } else {
                 delete (packet);
@@ -110,6 +111,7 @@ void clientMock() {
         }
     }
     std::cout <<"ClientMock::verifiacion failed\n";
+    close(cliSock);
 }
 
 #endif //SERWER_CLIENTMOCK_H
