@@ -67,7 +67,7 @@ bool verifyAgainstClient(int sock, Pubkey &pubkey) {
 }
 
 
-void *clientMock(void *) {
+void clientMock() {
     int cliSock;
     struct sockaddr_in dstAddr;
     Packet *packet;
@@ -81,7 +81,7 @@ void *clientMock(void *) {
 
     if (connect(cliSock, (struct sockaddr*) &dstAddr, sizeof(dstAddr)) < 0) {
         std::cout <<"blad: conect"<<std::endl;
-        return nullptr;
+        return ;
     }
     Pubkey pubkey("server-public.pem");
     Privkey privkey("client-private.pem");
@@ -104,14 +104,13 @@ void *clientMock(void *) {
                 }
                 EOT eot;
                 eot.send(cliSock, &sesskey);
-                return nullptr;
+                return;
             } else {
                 delete (packet);
             }
         }
     }
     std::cout <<"ClientMock::verifiacion failed\n";
-    return nullptr;
 }
 
 #endif //SERWER_CLIENTMOCK_H

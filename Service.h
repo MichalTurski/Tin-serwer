@@ -31,21 +31,27 @@ public:
 class AnalogIn: public Service {
 private:
     float val;
+    time_t timestamp;
 public:
     AnalogIn(unsigned char id, std::string&& name, std::string&& unit): Service(id, name, unit),
-                                                                        val(0) {}
+                                                                        val(0), timestamp(0) {}
     float getVal();
     void setVal(float newVal);
+    time_t getTimestamp();
+    void setTimestamp(time_t time);
 };
 
 class DigitalIn: public Service {
 private:
     bool val;
+    time_t timestamp;
 public:
     DigitalIn(unsigned char id, std::string&& name, std::string&& unit): Service(id, name, unit),
-                                                                         val(false) {}
+                                                                         val(false), timestamp(0) {}
     bool getVal();
     void setVal(float newVal);
+    time_t getTimestamp();
+    void setTimestamp(time_t time);
 };
 
 class AnalogOut: public Service {
@@ -59,7 +65,7 @@ private:
 public:
     AnalogOut(unsigned char id, std::string&& name, std::string&& unit, float min, float max);
     float getVal();
-    float beginSetting();
+    bool beginSetting(float *val);
     void finalizeSetting();
     void setVal(float newVal);
     float getMin() const;
@@ -75,7 +81,7 @@ private:
 public:
     DigitalOut(unsigned char id, std::string&& name, std::string&& unit);
     bool getVal();
-    float beginSetting();
+    bool beginSetting(float *val);
     void finalizeSetting();
     void setVal(bool newVal);
 };

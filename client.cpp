@@ -47,16 +47,17 @@ bool Client::initalize(int sockDesc, Server &server) {
         if (server.verifyServer(sockDesc)) {
             Sesskey sesskey;
             unsigned char cipSesskey[256];
-            pubkey.encrypt(sesskey.getKeyBuf(), 16, cipSesskey);
-            KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
-            if (sesskeyPck->send(sockDesc, nullptr) > 0) {
-                delete(sesskeyPck);
-                if (registerServices(sockDesc, server, sesskey)) {
-                    log(1, "Registered client number %d.", id);
-                    return true;
+            if (pubkey.encrypt(sesskey.getKeyBuf(), 16, cipSesskey)) {
+                KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
+                if (sesskeyPck->send(sockDesc, nullptr) > 0) {
+                    delete (sesskeyPck);
+                    if (registerServices(sockDesc, server, sesskey)) {
+                        log(1, "Registered client number %d.", id);
+                        return true;
+                    }
+                } else {
+                    delete (sesskeyPck);
                 }
-            } else {
-                delete(sesskeyPck);
             }
         }
     }
@@ -135,4 +136,139 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
     }
     delete (packet);
     return (false);
+}
+uint8_t Client::getId() const {
+    return id;
+}
+bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
+    Sesskey sesskey;
+    unsigned char cipSesskey[256];
+    *unused = nullptr;
+    if (pubkey.encrypt(sesskey.getKeyBuf(), 16, cipSesskey)) {
+        KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
+        if (sesskeyPck->send(sockDesc, nullptr) > 0) {
+            if (getValues(sockDesc, &sesskey, unused)){
+                if (end){
+                    if (setExit(sockDesc, &sesskey)){
+                        log(2, "Data exchange with client %d succeed.", id);
+                        return true;
+                    }
+                } else {
+                    if (setValues(sockDesc, &sesskey)) {
+                        log(2, "Data exchange with client %d succeed.", id);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
+    Packet *packet;
+    std::map<unsigned char, DigitalIn*>::iterator digInIter;
+    std::map<unsigned char, AnalogIn*>::iterator anInIter;
+
+    packet = Packet::packetFactory(sockDesc, sesskey);
+    if (dynamic_cast<VAL*> (packet) || dynamic_cast<EOT*> (packet)) {
+        while (!(dynamic_cast<EOT*> (packet))){
+            if (auto val = dynamic_cast<VAL*> (packet)) {
+                if ((digInIter = digInputs.find(val->getServiceId())) != digInputs.end()) {
+                    digInIter->second->setVal(val->getValue());
+                    digInIter->second->setTimestamp(val->getTimestamp());
+                } else if ((anInIter = analogInputs.find(val->getServiceId())) != analogInputs.end()) {
+                    anInIter->second->setVal(val->getValue());
+                    anInIter->second->setTimestamp(val->getTimestamp());
+                } else {
+                    delete(packet);
+                    log(2,"Client %d sent value of service %d which is not its input", id, val->getServiceId());
+                    return false;
+                }
+                delete(packet);
+                packet = Packet::packetFactory(sockDesc, sesskey);
+            } else {
+                delete(packet);
+                log(3, "Wrong packet type received during data exchange with client %d, expected VAl or EOT",
+                    id);
+                return false;
+            }
+        }
+        log(2, "Receiving values from client %d succeed.",id);
+        delete(packet);
+        return true;
+    } else {
+        *unused = packet;
+    }
+    return false;
+}
+bool Client::setValues(int sockDesc, Sesskey *sesskey) {
+    Packet *packet;
+    float val;
+
+    for (auto &&i :digOutputs) {
+        if (i.second->beginSetting(&val)) {
+            SET set(i.second->getId(), val);
+            if (!set.send(sockDesc, sesskey)) {
+                return false;
+            }
+            packet = Packet::packetFactory(sockDesc, sesskey);
+            if (!dynamic_cast<ACK *> (packet)) {
+                if (packet != nullptr || !dynamic_cast<NAK *> (packet)) {
+                    log(3, "Received wrong message in response to SET, expected ACK or NAK.");
+                }
+                free(packet);
+                return false;
+            }
+            free(packet);
+        }
+    }
+    for (auto &&i :analogOutputs) {
+        if (i.second->beginSetting(&val)) {
+            SET set(i.second->getId(), val);
+            if (!set.send(sockDesc, sesskey)) {
+                return false;
+            }
+            packet = Packet::packetFactory(sockDesc, sesskey);
+            if (!dynamic_cast<ACK *> (packet)) {
+                if (packet != nullptr || !dynamic_cast<NAK *> (packet)) {
+                    log(3, "Received wrong message in response to SET, expected ACK or NAK.");
+                }
+                free(packet);
+                return false;
+            }
+            free(packet);
+        }
+    }
+    EOT eot;
+    if (!eot.send(sockDesc, sesskey)) {
+        return false;
+    }
+    log(2, "Setting values of client %d succeed.", id);
+    for (auto &&i :digOutputs) {
+        i.second->finalizeSetting();
+    }
+    for (auto &&i :analogOutputs) {
+        i.second->finalizeSetting();
+    }
+    return true;
+}
+bool Client::setExit(int sockDesc, Sesskey *sesskey) {
+    Packet *packet;
+
+    EXIT exit((unsigned char) 0);
+    if (!exit.send(sockDesc, sesskey)) {
+        return false;
+    }
+    packet = Packet::packetFactory(sockDesc, sesskey);
+    if (!dynamic_cast<ACK *> (packet)) {
+        delete (packet);
+        log(3, "Received wrong message in response to EXIT, expected ACK.");
+        return false;
+    }
+    delete (packet);
+    EOT eot;
+    if (!eot.send(sockDesc, sesskey)) {
+        return false;
+    }
+    return true;
 }

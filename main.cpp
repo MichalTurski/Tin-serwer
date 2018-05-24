@@ -37,10 +37,6 @@ int initSocket() {
     return listenSock;
 }
 
-void sighandler(int signo) {
-    log(1, "Received signal %d, exiting.", signo);
-}
-
 void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd) {
     //struct sigaction sa;
     int signo;
@@ -52,7 +48,7 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
     conHandler.setExit();
     if (conHandler.clientsRegistered()) {
         std::unique_lock<std::mutex> lock(*readyToExitM);
-        if(readyToExit->wait_for(lock, std::chrono::seconds(15)) == std::cv_status::timeout) {
+        if(readyToExit->wait_for(lock, std::chrono::seconds(10)) == std::cv_status::timeout) {
             log(1, "Some clients are not responding, exiting anyway.");
         } else {
             log(1, "Succeed in disconnecting all clients, exiting.");
@@ -87,8 +83,7 @@ int main() {
 #endif //NO_TERMINATION
     ctpl::thread_pool tp(4);
 #ifndef NO_CLIENT_MOCK
-    pthread_t mock;
-    pthread_create(&mock, NULL, clientMock, NULL);
+    std::thread mock(clientMock);
 #endif //NO_CLIENT_MOCK
     assocSize = sizeof(clientAssoc);
     while(!end) {
@@ -103,7 +98,7 @@ int main() {
     close(socket);
 
 #ifndef NO_CLIENT_MOCK
-    pthread_join(mock, NULL);
+    mock.join();
 #endif //NO_CLIENT_MOCK
 #ifndef NO_TERMINATION
     terminationThread.join();

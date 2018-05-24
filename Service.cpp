@@ -44,6 +44,18 @@ void AnalogIn::setVal(float newVal) {
     val = newVal;
     mutex.unlock();
 }
+time_t AnalogIn::getTimestamp() {
+    time_t ts;
+    mutex.lock();
+    ts = timestamp;
+    mutex.unlock();
+    return ts;
+}
+void AnalogIn::setTimestamp(time_t time) {
+    mutex.lock();
+    timestamp = time;
+    mutex.unlock();
+}
 
 bool DigitalIn::getVal() {
     bool toRet;
@@ -57,7 +69,18 @@ void DigitalIn::setVal(float newVal) {
     val = (newVal > 0.5);
     mutex.unlock();
 }
-
+time_t DigitalIn::getTimestamp() {
+    time_t ts;
+    mutex.lock();
+    ts = timestamp;
+    mutex.unlock();
+    return ts;
+}
+void DigitalIn::setTimestamp(time_t time) {
+    mutex.lock();
+    timestamp = time;
+    mutex.unlock();
+}
 
 AnalogOut::AnalogOut(unsigned char id, std::string&& name,
                      std::string&& unit, float min, float max): Service(id, name, unit), current(min),
@@ -69,18 +92,21 @@ float AnalogOut::getVal() {
     mutex.unlock();
     return toRet;
 }
-float AnalogOut::beginSetting() {
-    float newVal;
+bool AnalogOut::beginSetting(float *val) {
+    float isChange;
     mutex.lock();
     inProgress = expected;
-    newVal = expected;
+    *val = expected;
+    isChange = change;
     mutex.unlock();
-    return newVal;
+    return isChange;
 }
 void AnalogOut::finalizeSetting() {
     mutex.lock();
-    change = false;
-    current = inProgress;
+    if (change) {
+        change = false;
+        current = inProgress;
+    }
     mutex.unlock();
 }
 void AnalogOut::setVal(float newVal) {
@@ -110,18 +136,21 @@ bool DigitalOut::getVal() {
     mutex.unlock();
     return toRet;
 }
-float DigitalOut::beginSetting() {
-    float newVal;
+bool DigitalOut::beginSetting(float *val) {
+    float isChange;
     mutex.lock();
     inProgress = expected;
-    newVal = (float)expected;
+    *val = (float)expected;
+    isChange = change;
     mutex.unlock();
-    return newVal;
+    return isChange;
 }
 void DigitalOut::finalizeSetting() {
     mutex.lock();
-    change = false;
-    current = inProgress;
+    if (change) {
+        change = false;
+        current = inProgress;
+    }
     mutex.unlock();
 }
 void DigitalOut::setVal(bool newVal) {

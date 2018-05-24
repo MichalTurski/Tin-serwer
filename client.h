@@ -8,7 +8,7 @@
 
 class Client {
 private:
-	int id;
+	uint8_t id;
 	Pubkey pubkey;
 	std::map<unsigned char, DigitalIn*> digInputs;
 	std::map<unsigned char, AnalogIn*> analogInputs;
@@ -17,10 +17,15 @@ private:
 
     bool verifyClient(int sockDesc) const;
 	bool registerServices(int sockDesc, Server &server, const Sesskey &sesskey);
+	bool getValues(int sockDesc, Sesskey *sesskey, Packet **unused);
+	bool setValues(int sockDesc, Sesskey *sesskey);
+	bool setExit(int sockDesc, Sesskey *sesskey);
 public:
 	void unregisterServices(Server &server);
 	Client(int id, const char *pubkey);
 	~Client();
 	bool initalize(int sockDesc, Server &server);
+	uint8_t getId() const;
+	bool tryDataExchange(int sockDesc, bool end, Packet **unused);
 };
 #endif //CLIENT_H

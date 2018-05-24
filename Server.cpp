@@ -12,9 +12,9 @@
 Server::Server(const char *file): privkey(file) {
     OPENSSL_config (nullptr);
     ERR_load_crypto_strings ();
-    OpenSSL_add_all_ciphers();
-    OpenSSL_add_all_algorithms();
-    CRYPTO_malloc_init();
+//    OpenSSL_add_all_ciphers();
+//    OpenSSL_add_all_algorithms();
+//    CRYPTO_malloc_init();
 }
 /*Server::Server() {
     OPENSSL_config (nullptr);

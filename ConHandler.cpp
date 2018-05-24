@@ -48,7 +48,7 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
     exit (-1);
 }
 ConHandler::~ConHandler() {
-    for (std::map<int, Client*>::iterator it = idClientPairs.begin(); it != idClientPairs.end(); ++it) {
+    for (std::map<uint8_t , Client*>::iterator it = idClientPairs.begin(); it != idClientPairs.end(); ++it) {
         delete(it->second);
     }
     delete(server);
@@ -58,50 +58,69 @@ void ConHandler::handle(int desc, struct in_addr &cliAddr) {
     std::map<uint32_t, Client*>::iterator ipIter;
     struct timeval tv;
 
-    tv.tv_sec = 5;//TODO
+    tv.tv_sec = 5;
     tv.tv_usec = 0;
     if (setsockopt(desc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) == 0) {
         std::shared_lock<std::shared_timed_mutex> sharedLock(addrClientMutex);
-        //sharedLock.lock();
         ipIter = addrClientPairs.find(cliAddr.s_addr);
         if (ipIter != addrClientPairs.end()) {
             sharedLock.unlock();
-            //Client have been verified, we can do regular job
+            //In our opinnion client have been verified, we can do regular job
             client = ipIter->second;
-            //TODO
-        } else if (!exitFlag) {
-            sharedLock.unlock();
-            registration(desc, cliAddr);
+            Packet *unused = tryDataExchange(desc, client);
+            if (dynamic_cast<ID*> (unused)) {
+                log(2, "Data exchange with client number %d failed, he is trying to verify.", client->getId());
+                registration(desc, cliAddr, unused);
+            }
+            delete (unused);
         } else {
-            log(2, "Client tried to register, but server is exiting. Rejected.");
+            sharedLock.unlock();
+            Packet *packet = Packet::packetFactory(desc, nullptr);
+            registration(desc, cliAddr, packet);
+            delete(packet);
         }
     } else {
         log(3, "Failed when setting time limit on listening socket.");
     }
 }
-void ConHandler::registration(int desc, struct in_addr cliAddr) {
+void ConHandler::registration(int desc, struct in_addr cliAddr, Packet *unused) {
     Client *client;
-    std::map<int, Client*>::iterator idIter;
+    std::map<uint8_t , Client*>::iterator idIter;
 
-    Packet *packet = Packet::packetFactory(desc, nullptr);
-    if (ID *id = dynamic_cast<ID*> (packet)) {
-        idIter = idClientPairs.find(id->getId());
-        if (idIter != idClientPairs.end()) {
-            client = idIter->second;
-            if (client->initalize(desc, *server)) {
-                std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
-                addrClientPairs[cliAddr.s_addr] = client; //verification succeed, now we will be finding client by ip
-                uniqueLock.unlock();
+    if (!exitFlag) {
+        if (ID *id = dynamic_cast<ID *> (unused)) {
+            idIter = idClientPairs.find(id->getId());
+            if (idIter != idClientPairs.end()) {
+                client = idIter->second;
+                if (client->initalize(desc, *server)) {
+                    std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
+                    addrClientPairs[cliAddr.s_addr] = client; //verification succeed, now we will be finding client by ip
+                    uniqueLock.unlock();
+                }
+            } else {
+                log(2, "Client with unrecognized number %d tried to register", id->getId());
             }
-        } else {
-            log(2, "Client with unrecognized number %d tried to register", id->getId());
+        } else if (unused == nullptr) {}
+        else {
+            log(3, "Wrong packet type received, expected ID. Unable to verify client.");
         }
-    } else if (packet == nullptr) {} else{
-        log(3, "Wrong packet type received, expected ID. Unable to verify client.");
+    } else {
+        log(2, "Client tried to register, but server is exiting. Rejected.");
     }
 }
-void ConHandler::dataExchange(int desc, Client *client) {
-
+Packet *ConHandler::tryDataExchange(int desc, Client *client) {
+    Packet *unused;
+    if (client->tryDataExchange(desc, exitFlag, &unused)) {
+        if (exitFlag) {
+            log(1, "Succeed in disconnecting client number &d.", client->getId());
+            std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
+            addrClientPairs.erase(client->getId());
+            uniqueLock.unlock();
+        } else {
+            log(2, "Data exchange with client %d succeed.", client->getId());
+        }
+    }
+    return unused;
 }
 void ConHandler::setExit() {
     exitFlag = true;

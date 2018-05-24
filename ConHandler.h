@@ -14,7 +14,7 @@
 
 class ConHandler {
 private:
-    std::map<int, Client*> idClientPairs;
+    std::map<uint8_t, Client*> idClientPairs;
     std::map<uint32_t, Client*> addrClientPairs;
     mutable std::shared_timed_mutex addrClientMutex;
     Server *server;
@@ -22,8 +22,8 @@ private:
     std::condition_variable readyToExit;
     std::mutex readyToExitM;
 
-    void registration(int desc, struct in_addr cliAddr);
-    void dataExchange(int desc, Client *client);
+    void registration(int desc, struct in_addr cliAddr, Packet *unused);
+    Packet *tryDataExchange(int desc, Client *client);
 public:
     ConHandler(std::string fileName);
     ~ConHandler();
