@@ -115,7 +115,7 @@ Packet *ConHandler::tryDataExchange(int desc, Client *client) {
         if (exitFlag) {
             log(1, "Succeed in disconnecting client number &d.", client->getId());
             std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
-            addrClientPairs.erase(client->getId());
+            unregisterClient(client->getId());
             if (addrClientPairs.empty()){
                 readyToExit.notify_one();
             }
