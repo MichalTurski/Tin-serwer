@@ -5,7 +5,6 @@
 #ifndef SERWER_SERVER_H
 #define SERWER_SERVER_H
 
-
 #include "privkey.h"
 #include "ServiceTable.h"
 

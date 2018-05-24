@@ -1,11 +1,7 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#include <cstdlib>
-#include <ctime>
-#include <cstdint>
 #include <cstring>
-#include <string>
 
 #include "sesskey.h"
 

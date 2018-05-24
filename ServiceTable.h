@@ -5,7 +5,6 @@
 #ifndef SERWER_SERVICETABLE_H
 #define SERWER_SERVICETABLE_H
 
-
 #include <vector>
 #include <list>
 #include <shared_mutex>

@@ -2,7 +2,6 @@
 #define TIN_SESSKEY
 
 #include <openssl/evp.h>
-#include <cstdlib>
 #include "packet.h"
 #include "privkey.h"
 

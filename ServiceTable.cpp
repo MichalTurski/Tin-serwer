@@ -2,7 +2,6 @@
 // Created by michal on 19.05.18.
 //
 
-#include <pthread.h>
 #include "ServiceTable.h"
 
 ServiceTable::ServiceTable() {

@@ -1,4 +1,3 @@
-#include <cstring>
 #include <openssl/err.h>
 #include <stdexcept>
 #include "sesskey.h"

@@ -1,18 +1,8 @@
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <zconf.h>
-#include <fstream>
 #include <thread>
 #include <csignal>
+#include <unistd.h>
 
-#include "RNG.h"
-#include "packet.h"
-#include "privkey.h"
-#include "Server.h"
-#include "client.h"
 #include "ClientMock.h"
 #include "ConHandler.h"
 #include "CTPL/ctpl_stl.h"

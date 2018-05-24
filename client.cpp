@@ -2,7 +2,6 @@
 // Created by michal on 11.05.18.
 //
 
-#include <iostream>
 #include "client.h"
 #include "packet.h"
 #include "RNG.h"
@@ -96,7 +95,6 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
     unsigned char id;
     packet = Packet::packetFactory(sockDesc, &sesskey);
     while (DESC *desc = dynamic_cast<DESC*> (packet)){
-        std::cout << desc->getName() << std::endl;
         id = server.reserveId();
         if (id > 0) {
             service = Service::serviceFactory(id, desc->getDeviceClass(), desc->getName(),

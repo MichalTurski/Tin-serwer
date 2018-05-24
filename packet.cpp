@@ -1,13 +1,8 @@
-#include <cstring>
 #include <unistd.h>
 #include <cerrno>
-#include <utility>
-#include <sys/socket.h>
-#include <ctime>
 #include <stdexcept>
 
 #include "packet.h"
-#include "sesskey.h"
 #include "utils.h"
 
 int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
