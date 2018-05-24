@@ -38,6 +38,7 @@ bool verifyAgainstServer(int sock, Privkey &privkey) {
             log(1, "Wrong type of message\n");
         }
     }
+    return false;
 }
 
 bool verifyAgainstClient(int sock, Pubkey &pubkey) {

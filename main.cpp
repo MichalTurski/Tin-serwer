@@ -41,29 +41,28 @@ void sighandler(int signo) {
     log(1, "Received signal %d, exiting.", signo);
 }
 
-void terminationHandler(ConHandler &conHandler, std::atomic<bool> &end) {
+void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd) {
     //struct sigaction sa;
-    sigset_t waitset;
+    int signo;
     std::condition_variable *readyToExit;
     std::mutex *readyToExitM;
-    sigemptyset(&waitset);
-    sigaddset(&waitset, SIGINT);
-    //sigprocmask(SIG_BLOCK, &waitset, nullptr);
-    //sigemptyset(&sa.sa_mask);
-    //sa.sa_flags = 0;
-    //sa.sa_handler = sighandler;
-    //sigaction(SIGINT, &sa, NULL);
-    conHandler.getReadyToExit(readyToExit, readyToExitM);
-    log(1, "aaaa");
-    sigwait(&waitset, nullptr);
-    //pause();//wait for signal
-    log(1, "bbb");
+    conHandler.getReadyToExit(&readyToExit, &readyToExitM);
+    sigwait(&sigset, &signo);
+    log(1, "Received signal %s, trying do disconet from all clients.", strsignal(signo));
     conHandler.setExit();
-    //todo: check if conHandler is empty yet
-    std::unique_lock<std::mutex> lock(*readyToExitM);
-    readyToExit->wait_for(lock, std::chrono::seconds(30)); //TODO: diferent logs for timeout and peceful end
-    log(1, "Exiting.");
+    if (conHandler.clientsRegistered()) {
+        std::unique_lock<std::mutex> lock(*readyToExitM);
+        if(readyToExit->wait_for(lock, std::chrono::seconds(15)) == std::cv_status::timeout) {
+            log(1, "Some clients are not responding, exiting anyway.");
+        } else {
+            log(1, "Succeed in disconnecting all clients, exiting.");
+        }
+    } else {
+        log(1, "There are no registered clients. Exiting.");
+    }
+//    log(1, "Exiting.");
     end = true;
+    shutdown(sockfd, SHUT_RDWR);
 }
 
 int main() {
@@ -74,17 +73,18 @@ int main() {
     std::atomic<bool> end;
     end = false;
     ConHandler conHandler("configfile.conf");
-    sigset_t waitset;
-    sigemptyset(&waitset);
-    sigaddset(&waitset, SIGINT);
-    sigprocmask(SIG_BLOCK, &waitset, nullptr);
-#ifndef NO_TERMINATION
-    std::thread terminationThread(terminationHandler, std::ref(conHandler), std::ref(end));
-#endif //NO_TERMINATION
     socket = initSocket();
     if (socket < 0) {
         exit (-1);
     }
+#ifndef NO_TERMINATION
+    sigset_t termset;
+    sigemptyset(&termset);
+    sigaddset(&termset, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &termset, nullptr);
+    std::thread terminationThread(terminationHandler, std::ref(termset),
+                                  std::ref(conHandler), std::ref(end), socket);
+#endif //NO_TERMINATION
     ctpl::thread_pool tp(4);
 #ifndef NO_CLIENT_MOCK
     pthread_t mock;

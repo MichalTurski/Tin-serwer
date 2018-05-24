@@ -106,9 +106,13 @@ void ConHandler::dataExchange(int desc, Client *client) {
 void ConHandler::setExit() {
     exitFlag = true;
 }
-void ConHandler::getReadyToExit(std::condition_variable *ready, std::mutex *readyM) {
-    ready = &readyToExit;
-    readyM = &readyToExitM;
+void ConHandler::getReadyToExit(std::condition_variable **ready, std::mutex **readyM) {
+    *ready = &readyToExit;
+    *readyM = &readyToExitM;
+}
+bool ConHandler::clientsRegistered() {
+    std::shared_lock<std::shared_timed_mutex> lock(addrClientMutex);
+    return (!addrClientPairs.empty());
 }
 
 void conHandle(int id, ConHandler &conHandler, int desc, struct in_addr cliAddr) {

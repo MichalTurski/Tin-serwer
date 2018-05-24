@@ -27,9 +27,10 @@ private:
 public:
     ConHandler(std::string fileName);
     ~ConHandler();
-    void getReadyToExit(std::condition_variable *ready, std::mutex *readyM);
+    void getReadyToExit(std::condition_variable **ready, std::mutex **readyM);
     void handle(int desc, struct in_addr &cliAddr);
     void setExit();
+    bool clientsRegistered();
 };
 
 /*
