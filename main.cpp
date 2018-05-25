@@ -2,6 +2,7 @@
 #include <thread>
 #include <csignal>
 #include <unistd.h>
+#include <bits/siginfo.h>
 
 #include "ClientMock.h"
 #include "ConHandler.h"
@@ -30,13 +31,24 @@ int initSocket(uint16_t port = 12345) {
 
 void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd) {
     //struct sigaction sa;
-    int signo;
+    siginfo_t siginfo;
+    timespec roundRobinTimeout;
     std::condition_variable *readyToExit;
     std::mutex *readyToExitM;
+    bool sigReceived = false;
+
+    roundRobinTimeout.tv_nsec = 0;
+    roundRobinTimeout.tv_sec = 30;
     conHandler.getReadyToExit(&readyToExit, &readyToExitM);
-    sigwait(&sigset, &signo);
-    log(1, "Received signal %s, trying do disconet from all clients.", strsignal(signo));
-    conHandler.setExit();
+    while (!sigReceived) {
+        if (sigtimedwait(&sigset, &siginfo, &roundRobinTimeout) > 0) {
+            sigReceived = true;
+            log(1, "Received signal %s, trying do disconnect from all clients.",
+                strsignal(siginfo.si_signo));
+            conHandler.setExit();
+        }
+        conHandler.roundRobinWalk();
+    }
     if (conHandler.clientsRegistered()) {
         std::unique_lock<std::mutex> lock(*readyToExitM);
         if(readyToExit->wait_for(lock, std::chrono::seconds(10)) == std::cv_status::timeout) {

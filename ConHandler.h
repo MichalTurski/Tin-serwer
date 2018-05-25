@@ -34,6 +34,7 @@ public:
     void setExit();
     bool clientsRegistered();
     bool unregisterClient(uint8_t id);
+    void roundRobinWalk();
 };
 
 /*

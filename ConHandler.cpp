@@ -156,6 +156,25 @@ bool ConHandler::unregisterClient(uint8_t id) {
     }
     return false;
 }
+void ConHandler::roundRobinWalk() {
+    Client *client;
+    std::map<uint32_t, Client*>::iterator iter;
+    std::shared_lock<std::shared_timed_mutex> sharedLock(addrClientMutex);
+    for (iter = addrClientPairs.begin(); iter != addrClientPairs.end(); ++iter) {
+        if (iter->second->getUsed()){
+            iter->second->setUnused();
+        } else {
+            client = iter->second;
+            log(1, "Client %d is not active, disconnecting it.", client->getId());
+            sharedLock.unlock();
+            std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
+            addrClientPairs.erase(iter->first);
+            uniqueLock.unlock();
+            client->unregisterServices(*server);
+            sharedLock.lock();
+        }
+    }
+}
 
 void conHandle(int id, ConHandler &conHandler, int desc, struct in_addr cliAddr) {
     conHandler.handle(desc, cliAddr);

@@ -14,6 +14,8 @@ private:
 	uint8_t id;
 	Pubkey pubkey;
 	ConHandler &conHandler;
+	std::atomic<bool> used;
+	std::mutex mutex;
 
 	std::map<unsigned char, DigitalIn*> digInputs;
 	std::map<unsigned char, AnalogIn*> analogInputs;
@@ -33,5 +35,7 @@ public:
 	bool initalize(int sockDesc, Server &server);
 	uint8_t getId() const;
 	bool tryDataExchange(int sockDesc, bool end, Packet **unused);
+	bool getUsed();
+	void setUnused();
 };
 #endif //CLIENT_H
