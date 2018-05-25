@@ -270,7 +270,7 @@ DESC::DESC(std::string &name, std::string &unit, float min, float max):
 	    throw(std::runtime_error("Unit name is too long."));
 	}
 	buf[0] = PCK_DESC;
-	buf[1] = 1;//TODO: buf[1] = ?;
+	buf[1] = 0;//TODO: buf[1] = ?;
 	memcpy(&buf[2], name.c_str(), name.size()+1);//TODO: change it to make name longer
 	memcpy(&buf[name.size() + 3], unit.c_str(), name.size()+1);
 	memcpy(&buf[name.size() + 7], &min, sizeof(float));
