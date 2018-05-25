@@ -14,7 +14,7 @@ unsigned char ServiceTable::reserve() {
 
     std::unique_lock<std::shared_timed_mutex> lock(mutex);
     if (free.empty()) {
-        candidate = services.size();
+        candidate = services.size();//if free is empty, there are no gaps in services table.
         do {
             for (reservedIter = reserved.begin(); reservedIter != reserved.end(); reservedIter++) {
                 if (*reservedIter == candidate) {
@@ -24,8 +24,8 @@ unsigned char ServiceTable::reserve() {
             }
         } while (reservedIter != reserved.end());
     } else {
-        candidate = reserved.front();
-        reserved.pop_front();
+        candidate = free.front();
+        free.pop_front();
     }
     if (candidate > 255) {
         candidate = 0;
