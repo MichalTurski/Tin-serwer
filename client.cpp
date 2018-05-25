@@ -9,7 +9,8 @@
 
 RNG rng;
 
-Client::Client(int id, const char *pubkey, ConHandler &conHandler): id(id), pubkey(pubkey), conHandler(conHandler) {}
+Client::Client(uint8_t id, const char *pubkey, ConHandler &conHandler): id(id), pubkey(pubkey),
+                                                                        conHandler(conHandler) {}
 Client::~Client() {
     for (auto&& i : digInputs)
         delete(i.second);
@@ -40,8 +41,6 @@ void Client::unregisterServices(Server &server) {
 }
 
 bool Client::initalize(int sockDesc, Server &server) {
-    Packet *packet;
-
     if (verifyClient(sockDesc)) {
         if (server.verifyServer(sockDesc)) {
             Sesskey sesskey;
@@ -72,7 +71,7 @@ bool Client::verifyClient(int sockDesc) const {
     CHALL *chall = CHALL::createFromRandom(random);
     if (chall->send(sockDesc, nullptr) > 0) {
         response = Packet::packetFactory(sockDesc, nullptr);
-        if (CHALL_RESP *challResp = dynamic_cast<CHALL_RESP *> (response)) {
+        if (auto challResp = dynamic_cast<CHALL_RESP *> (response)) {
             if (pubkey.verify_sign(random, 8, challResp->getResp(), 256)) {
                 delete(challResp);
                 delete chall;
@@ -95,7 +94,7 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
     Service *service;
     unsigned char id;
     packet = Packet::packetFactory(sockDesc, &sesskey);
-    while (DESC *desc = dynamic_cast<DESC*> (packet)){
+    while (auto desc = dynamic_cast<DESC*> (packet)){
         id = server.reserveId();
         if (id > 0) {
             service = Service::serviceFactory(id, desc->getDeviceClass(), desc->getName(),
@@ -129,7 +128,7 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
             break;
         }
     }
-    log(3, "Registration of services of client %d failed. Sending NAK.", id);
+    log(3, "Registration of services of client %d failed. Sending NAK.", this->id);
     NAK nak((unsigned char)0);
     nak.send(sockDesc, &sesskey);
     for (auto&& i : services) {
@@ -172,24 +171,12 @@ bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
     return false;
 }
 bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused) {
-    Packet *packet;
-
-    if (dynamic_cast<EXIT*> (*unused)){
+    if (dynamic_cast<EXIT*> (*unused)) {
         delete(*unused);
         *unused = nullptr;
-        ACK ack((unsigned char) 0);
-        if (ack.send(sockDesc, sesskey)) {
-            packet = Packet::packetFactory(sockDesc, sesskey);
-            if (dynamic_cast<EOT*> (packet)){
-                log(1, "Client &d requested exiting, unregistering it.", id);
-                conHandler.unregisterClient(id);
-                delete(packet);
-                return true;
-            } else {
-                delete(packet);
-                log(3, "Client &d requested exiting, responded ACK, expected EOT, but not received.", id);
-            }
-        }
+        log(1, "Client %d requested exiting, unregistering it.", id);
+        conHandler.unregisterClient(id);
+        return true;
     }
     return false;
 }
@@ -297,16 +284,4 @@ bool Client::setExit(int sockDesc, Sesskey *sesskey) {
     if (!exit.send(sockDesc, sesskey)) {
         return false;
     }
-    packet = Packet::packetFactory(sockDesc, sesskey);
-    if (!dynamic_cast<ACK *> (packet)) {
-        delete (packet);
-        log(3, "Received wrong message in response to EXIT, expected ACK.");
-        return false;
-    }
-    delete (packet);
-    EOT eot;
-    if (!eot.send(sockDesc, sesskey)) {
-        return false;
-    }
-    return true;
 }

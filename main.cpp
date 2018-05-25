@@ -7,7 +7,7 @@
 #include "ConHandler.h"
 #include "CTPL/ctpl_stl.h"
 
-int initSocket(unsigned int port = 12345) {
+int initSocket(uint16_t port = 12345) {
     struct sockaddr_in srvAddr;
     int listenSock;
 

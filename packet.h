@@ -25,11 +25,11 @@ protected:
 	uint32_t buf_size;
 //	Packet(unsigned char *buf): buf(buf) {}
 	Packet(const unsigned char *buf_in, uint32_t buf_len);
-	Packet(size_t size);
+	Packet(size_t size) ;
 public:
 	static Packet *packetFactory(int soc_desc, const Sesskey *sesskey);
 //    Packet(int soc_desc, const Sesskey *sesskey);
-    ~Packet();
+    virtual ~Packet();
     virtual ssize_t send(int soc_desc, const Sesskey *sesskey) const = 0;
 };
 

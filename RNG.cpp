@@ -7,11 +7,6 @@
 #include "RNG.h"
 #include "log.h"
 
-RNG::RNG() {
-}
-RNG::~RNG() {
-}
-
 int RNG::generate(unsigned char *buf,size_t size){
 	int rc = RAND_bytes(buf, size);
 	if(rc != 1) {

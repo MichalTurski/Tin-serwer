@@ -28,7 +28,7 @@ private:
 	bool tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused);
 public:
 	void unregisterServices(Server &server);
-	Client(int id, const char *pubkey, ConHandler &conHandler);
+	Client(uint8_t id, const char *pubkey, ConHandler &conHandler);
 	~Client();
 	bool initalize(int sockDesc, Server &server);
 	uint8_t getId() const;

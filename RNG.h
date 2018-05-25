@@ -4,7 +4,5 @@
 class RNG {
 public:
 	int generate(unsigned char *buf, size_t size);
-	RNG();
-	~RNG();
 };
 #endif //TIN_RNG
