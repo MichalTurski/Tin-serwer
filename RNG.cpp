@@ -5,7 +5,7 @@
 #include <openssl/rand.h>
 
 #include "RNG.h"
-#include "utils.h"
+#include "log.h"
 
 RNG::RNG() {
 }

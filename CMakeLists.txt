@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS -Wall)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_TERMINATION")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_CLIENT_MOCK")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_THREAD_POOL")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_CLIENT_MOCK")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_THREAD_POOL")
 
 include_directories(/usr/lib/)
 link_libraries(ssl)
@@ -23,5 +23,5 @@ add_executable(Serwer main.cpp
         Server.cpp Server.h
         Service.cpp Service.h
         ServiceTable.cpp ServiceTable.h
-        utils.h ClientMock.h
-        CTPL/ctpl_stl.h)
+        log.cpp log.h
+        CTPL/ctpl_stl.h ClientMock.h)

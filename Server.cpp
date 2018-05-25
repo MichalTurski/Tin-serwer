@@ -8,7 +8,7 @@
 
 #include "Server.h"
 #include "packet.h"
-#include "utils.h"
+#include "log.h"
 
 Server::Server(const char *file): privkey(file) {
     OPENSSL_config (nullptr);

@@ -1,7 +1,7 @@
 #include <openssl/err.h>
 #include <stdexcept>
 #include "sesskey.h"
-#include "utils.h"
+#include "log.h"
 #include "RNG.h"
 
 extern RNG rng;

@@ -7,23 +7,24 @@
 #include "ConHandler.h"
 #include "CTPL/ctpl_stl.h"
 
-int initSocket() {
+int initSocket(unsigned int port = 12345) {
     struct sockaddr_in srvAddr;
     int listenSock;
 
     srvAddr.sin_family = AF_INET;
-    srvAddr.sin_port = htons(12345);
+    srvAddr.sin_port = htons(port);
     srvAddr.sin_addr.s_addr = INADDR_ANY;
 
     listenSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (bind(listenSock, (struct sockaddr*) &srvAddr, sizeof(srvAddr)) < 0) {
-        std::cout <<"blad: bind"<<std::endl;
+        log(1, "Error occurred during binding socket on port %d", port);
         return -1;
     }
     if (listen(listenSock, 10) < 0) {
-        std::cout <<"blad: listen"<<std::endl;
+        log(1, "Error occurred during listening on socket on port %d", port);
         return -1;
     }
+    log(1, "Server registered on port %d.", port);
     return listenSock;
 }
 
@@ -51,15 +52,50 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
     shutdown(sockfd, SHUT_RDWR);
 }
 
-int main() {
+int main(int argc, char **argv) {
     struct sockaddr_in clientAssoc;
     int connectionDesc;
     int socket;
+    int opt;
+    int verbosity = 2;
+    std::string configfile = "configfile.conf";
+    std::string logfile = "server.log";
+    int port = 12345;
     socklen_t assocSize;
     std::atomic<bool> end;
     end = false;
+
+    while ((opt = getopt(argc, argv, "v:p:c:l:")) != -1) {
+        switch (opt) {
+            case 'v':
+                verbosity = atoi(optarg);
+                if (verbosity < 0 || verbosity > 4){
+                    std::cout << "Verbosity must be integer between 0 and 4.\n";
+                    return -1;
+                }
+                break;
+            case 'p':
+                port = atoi(optarg);
+                if (port < 1025 || port > std::numeric_limits<uint16_t>::max()){
+                    std::cout << "Port must be integer between 1025 and "<<
+                              std::numeric_limits<uint16_t>::max() << ".\n";
+                    return -1;
+                }
+                break;
+            case 'c':
+                configfile.assign(optarg);
+                break;
+            case 'l':
+                logfile.assign(optarg);
+                break;
+            default:
+            std::cout << "usage:\n" << argv[0] << "[-v verbosity] [-p port] [-c configfile] [-l logfile] \n";
+            return -1;
+        }
+    }
+    initLog(logfile, verbosity);
     ConHandler conHandler("configfile.conf");
-    socket = initSocket();
+    socket = initSocket(port);
     if (socket < 0) {
         exit (-1);
     }
@@ -101,6 +137,6 @@ int main() {
 #ifndef NO_TERMINATION
     terminationThread.join();
 #endif //NO_TERMINATION
-
+    logClose();
     return 0;
 }

@@ -7,7 +7,7 @@
 #include <openssl/err.h>
 
 #include "ConHandler.h"
-#include "utils.h"
+#include "log.h"
 #include "packet.h"
 
 ConHandler::ConHandler(std::string fileName): exitFlag(false) {

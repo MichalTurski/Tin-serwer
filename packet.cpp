@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include "packet.h"
-#include "utils.h"
+#include "log.h"
 
 int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 	ssize_t i = 0;
@@ -31,7 +31,7 @@ ssize_t writeTillDone(int soc_desc, const unsigned char *buf, ssize_t msg_size) 
 		written = write(soc_desc, &buf[i], (size_t) msg_size - i);
 		switch (written) {
 			case -1:
-				log(3, "Writing to socket exited with: %s.\n", strerror(errno));
+				log(3, "Writing to socket exited with: %s.", strerror(errno));
 				return -1;
 			case 0:
 				log(3, "Client socket have been closed");

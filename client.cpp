@@ -5,7 +5,7 @@
 #include "client.h"
 #include "packet.h"
 #include "RNG.h"
-#include "utils.h"
+#include "log.h"
 
 RNG rng;
 
@@ -126,6 +126,7 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
             break;
         }
     }
+    log(3, "Registration of services of client %d failed. Sending NAK.", id);
     NAK nak((unsigned char)0);
     nak.send(sockDesc, &sesskey);
     for (auto&& i : services) {

@@ -3,7 +3,7 @@
 //
 
 #include "Service.h"
-#include "utils.h"
+#include "log.h"
 
 Service::Service(unsigned char id, std::string& name, std::string& unit):id(id), name(name), unit(unit) {}
 Service* Service::serviceFactory(unsigned char id, unsigned char devClass, const char *name,

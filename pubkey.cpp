@@ -1,7 +1,7 @@
 #include <openssl/pem.h>
 #include <stdexcept>
 #include "pubkey.h"
-#include "utils.h"
+#include "log.h"
 
 Pubkey::Pubkey(const char* file_name) {
 	FILE *fp = fopen(file_name,"rb");

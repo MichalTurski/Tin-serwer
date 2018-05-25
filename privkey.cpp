@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include "privkey.h"
-#include "utils.h"
+#include "log.h"
 
 Privkey::Privkey(const char* file_name) {
     FILE *fp = fopen(file_name,"rb");

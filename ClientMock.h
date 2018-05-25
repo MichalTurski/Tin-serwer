@@ -14,7 +14,7 @@
 #include "privkey.h"
 #include "pubkey.h"
 #include "packet.h"
-#include "utils.h"
+#include "log.h"
 
 bool verifyAgainstServer(int sock, Privkey &privkey) {
     unsigned char sign[256];
