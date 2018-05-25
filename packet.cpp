@@ -251,16 +251,16 @@ const char *DESC::getName() const {
 	return reinterpret_cast<char*> (&buf[2]);
 }
 const char *DESC::getUnit() const {
-	return reinterpret_cast<char*> (&buf[buf_size - 13]);
+	return reinterpret_cast<char*> (&buf[buf_size - 12]);
 }
 float DESC::getMin() const {
 	float min;
-	memcpy(&min, &buf[buf_size - 9], sizeof(float));
+	memcpy(&min, &buf[buf_size - 8], sizeof(float));
 	return min;
 }
 float DESC::getMax() const {
 	float max;
-	memcpy(&max, &buf[buf_size - 5], sizeof(float));
+	memcpy(&max, &buf[buf_size - 4], sizeof(float));
 	return max;
 }
 DESC::DESC(std::string &name, std::string &unit, float min, float max):
@@ -271,10 +271,10 @@ DESC::DESC(std::string &name, std::string &unit, float min, float max):
 	}
 	buf[0] = PCK_DESC;
 	buf[1] = 0;//TODO: buf[1] = ?;
-	memcpy(&buf[2], name.c_str(), name.size()+1);//TODO: change it to make name longer
-	memcpy(&buf[name.size() + 3], unit.c_str(), name.size()+1);
-	memcpy(&buf[name.size() + 7], &min, sizeof(float));
-	memcpy(&buf[name.size() + 11], &max, sizeof(float));
+	memcpy(&buf[2], name.c_str(), name.size()+1);
+	memcpy(&buf[buf_size - 12], unit.c_str(), 4);
+	memcpy(&buf[buf_size - 8], &min, sizeof(float));
+	memcpy(&buf[buf_size - 4], &max, sizeof(float));
 }
 
 /*VAL::VAL(Packet &&packet): EncrptedPacket(packet.buf) {

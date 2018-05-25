@@ -105,7 +105,7 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
             if (ack.send(sockDesc, &sesskey) > 0) {
                 packet = Packet::packetFactory(sockDesc, &sesskey);
                 if (dynamic_cast<EOT *> (packet)) {
-                    for (auto &&i : services) {
+                    for (auto i : services) {
                         server.addService(i->getId(), i);
                         if (auto j = dynamic_cast<DigitalIn*> (i))
                             digInputs.insert(std::make_pair(j->getId(), j));
