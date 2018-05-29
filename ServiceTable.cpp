@@ -5,7 +5,7 @@
 #include "ServiceTable.h"
 
 ServiceTable::ServiceTable() {
-    services.push_back(nullptr);//service number 0 is reserved
+    services.push_back(nullptr);
 }
 
 unsigned char ServiceTable::reserve() {
@@ -14,15 +14,13 @@ unsigned char ServiceTable::reserve() {
 
     std::unique_lock<std::shared_timed_mutex> lock(mutex);
     if (free.empty()) {
-        candidate = services.size();//if free is empty, there are no gaps in services table.
-        do {
-            for (reservedIter = reserved.begin(); reservedIter != reserved.end(); reservedIter++) {
-                if (*reservedIter == candidate) {
-                    candidate++;
-                    break;
-                }
-            }
-        } while (reservedIter != reserved.end());
+        /*
+         * If free is empty, there are no gaps in services table.
+         * Also reserved are always part of services table.
+         * Therefore we create new vector field.
+         */
+        candidate = (unsigned char)(services.size());
+        services.resize(candidate + 1);
     } else {
         candidate = free.front();
         free.pop_front();
