@@ -32,10 +32,10 @@ Server::~Server() {
 //    ERR_remove_state (0);
 }
 
-bool Server::verifyServer(int sockDesc) const {
+bool Server::verifyServer(int sockDesc, Receiver &receiver) const {
     unsigned char sign[256];
     unsigned int signLen;
-    Packet *packet = Packet::packetFactory(sockDesc, nullptr);
+    Packet *packet = receiver.nextPacket();
     if (packet != nullptr) {
         if (CHALL *chall = dynamic_cast<CHALL *>(packet)) {
             privkey.sign(chall->getChall(), 8, sign, &signLen);

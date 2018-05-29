@@ -6,6 +6,7 @@
 #include "Server.h"
 #include "sesskey.h"
 #include "ConHandler.h"
+#include "Receiver.h"
 
 class ConHandler;
 
@@ -22,19 +23,19 @@ private:
 	std::map<unsigned char, DigitalOut*> digOutputs;
 	std::map<unsigned char, AnalogOut*> analogOutputs;
 
-    bool verifyClient(int sockDesc) const;
-	bool registerServices(int sockDesc, Server &server, const Sesskey &sesskey);
-	bool getValues(int sockDesc, Sesskey *sesskey, Packet **unused);
-	bool setValues(int sockDesc, Sesskey *sesskey);
+    bool verifyClient(int sockDesc, Receiver &receiver) const;
+	bool registerServices(int sockDesc, Server &server, const Sesskey &sesskey, Receiver &receiver);
+	bool getValues(int sockDesc, Sesskey *sesskey, Receiver &receiver);
+	bool setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver);
 	bool setExit(int sockDesc, Sesskey *sesskey);
-	bool tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused);
+	bool tryUnregister(int sockDesc, Sesskey *sesskey, Receiver &receiver);
 public:
 	void unregisterServices(Server &server);
 	Client(uint8_t id, const char *pubkey, ConHandler &conHandler);
 	~Client();
-	bool initalize(int sockDesc, Server &server);
+	bool initalize(int sockDesc, Server &server, Receiver &receiver);
 	uint8_t getId() const;
-	bool tryDataExchange(int sockDesc, bool end, Packet **unused);
+	bool tryDataExchange(int sockDesc, bool end, Receiver &receiver);
 	bool getUsed();
 	void setUnused();
 };

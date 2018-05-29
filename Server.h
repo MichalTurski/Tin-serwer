@@ -7,6 +7,7 @@
 
 #include "privkey.h"
 #include "ServiceTable.h"
+#include "Receiver.h"
 
 class Server {
 private:
@@ -17,7 +18,7 @@ public:
 //    Server();
     ~Server();
 //    void loadPrivkey(const char file);
-    bool verifyServer(int sockDesc) const;
+    bool verifyServer(int sockDesc, Receiver &receiver) const;
     unsigned char reserveId();
     bool unreserveId(unsigned char id);
     bool addService(unsigned char id, Service *service);

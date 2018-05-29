@@ -24,4 +24,4 @@ add_executable(Serwer main.cpp
         Service.cpp Service.h
         ServiceTable.cpp ServiceTable.h
         log.cpp log.h
-        CTPL/ctpl_stl.h ClientMock.h)
+        CTPL/ctpl_stl.h ClientMock.h Receiver.cpp Receiver.h)

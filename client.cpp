@@ -41,17 +41,18 @@ void Client::unregisterServices(Server &server) {
     }
 }
 
-bool Client::initalize(int sockDesc, Server &server) {
+bool Client::initalize(int sockDesc, Server &server, Receiver &receiver) {
     std::unique_lock<std::mutex> lock(mutex);
-    if (verifyClient(sockDesc)) {
-        if (server.verifyServer(sockDesc)) {
+    if (verifyClient(sockDesc, receiver)) {
+        if (server.verifyServer(sockDesc, receiver)) {
             Sesskey sesskey;
             unsigned char cipSesskey[256];
             if (pubkey.encrypt(sesskey.getKeyBuf(), 16, cipSesskey)) {
                 KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
                 if (sesskeyPck->send(sockDesc, nullptr) > 0) {
+                    receiver.addSesskey(&sesskey);
                     delete (sesskeyPck);
-                    if (registerServices(sockDesc, server, sesskey)) {
+                    if (registerServices(sockDesc, server, sesskey, receiver)) {
                         used = true;
                         log(1, "Registered client number %d.", id);
                         return true;
@@ -66,22 +67,20 @@ bool Client::initalize(int sockDesc, Server &server) {
     return (false);
 }
 
-bool Client::verifyClient(int sockDesc) const {
+bool Client::verifyClient(int sockDesc, Receiver &receiver) const {
     unsigned char random[8];
     Packet *response;
 
     rng.generate(random, 8);
     CHALL *chall = CHALL::createFromRandom(random);
     if (chall->send(sockDesc, nullptr) > 0) {
-        response = Packet::packetFactory(sockDesc, nullptr);
+        response = receiver.nextPacket();
         if (auto challResp = dynamic_cast<CHALL_RESP *> (response)) {
             if (pubkey.verify_sign(random, 8, challResp->getResp(), 256)) {
-                delete(challResp);
                 delete chall;
                 log(3, "Client number %d verified against server.", id);
                 return true;
             } else {
-                delete(challResp);
                 log(1, "Failed to verify challenge response, someone may be tying to do something nasty.");
             }
         } else {
@@ -91,22 +90,21 @@ bool Client::verifyClient(int sockDesc) const {
     delete chall;
     return false;
 }
-bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sesskey) {
+bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sesskey, Receiver &receiver) {
     Packet *packet;
     std::vector<Service*> services;
     Service *service;
     unsigned char id;
-    packet = Packet::packetFactory(sockDesc, &sesskey);
-    while (auto desc = dynamic_cast<DESC*> (packet)){
+    packet = receiver.nextPacket();
+    while (auto desc = dynamic_cast<DESC*> (packet)) {
         id = server.reserveId();
         if (id > 0) {
             service = Service::serviceFactory(id, desc->getDeviceClass(), desc->getName(),
                                               desc->getUnit(), desc->getMin(), desc->getMax());
-            delete(packet);
             services.push_back(service);
             ACK ack(id);
             if (ack.send(sockDesc, &sesskey) > 0) {
-                packet = Packet::packetFactory(sockDesc, &sesskey);
+                packet = receiver.nextPacket();
                 if (dynamic_cast<EOT *> (packet)) {
                     for (auto i : services) {
                         server.addService(i->getId(), i);
@@ -119,14 +117,12 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
                         if (auto&& j = dynamic_cast<AnalogOut*> (i))
                             analogOutputs.insert(std::make_pair(j->getId(), j));
                     }
-                    delete (packet);
                     return (true);
                 }
             } else {
                 return (false); //unable to connect with client, exiting
             }
         } else {
-            delete(packet);
             log(1, "Limit of services number have been reached.");
             break;
         }
@@ -138,22 +134,21 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
         server.unreserveId(i->getId());
         delete (i);
     }
-    delete (packet);
     return (false);
 }
 uint8_t Client::getId() const {
     return id;
 }
-bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
+bool Client::tryDataExchange(int sockDesc, bool end, Receiver &receiver) {
     Sesskey sesskey;
     unsigned char cipSesskey[256];
 
     std::unique_lock<std::mutex> lock(mutex);
-    *unused = nullptr;
     if (pubkey.encrypt(sesskey.getKeyBuf(), 16, cipSesskey)) {
         KEY *sesskeyPck = KEY::createFromEncrypted(cipSesskey);
         if (sesskeyPck->send(sockDesc, nullptr) > 0) {
-            if (getValues(sockDesc, &sesskey, unused)) {
+            receiver.addSesskey(&sesskey);
+            if (getValues(sockDesc, &sesskey, receiver)) {
                 if (end){
                     if (setExit(sockDesc, &sesskey)){
                         log(2, "Data exchange with client %d succeed.", id);
@@ -161,7 +156,7 @@ bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
                         return true;
                     }
                 } else {
-                    if (setValues(sockDesc, &sesskey)) {
+                    if (setValues(sockDesc, &sesskey, receiver)) {
                         log(2, "Data exchange with client %d succeed.", id);
                         used = true;
                         return true;
@@ -169,7 +164,7 @@ bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
                 }
             } else {
                 lock.unlock(); //try_unregister() calls unregisterServices() which takes this mutex
-                if (tryUnregister(sockDesc, &sesskey, unused)){
+                if (tryUnregister(sockDesc, &sesskey, receiver)){
                     log(2, "Data exchange with client %d succeed.", id);
                     used = true;
                     return true;
@@ -179,11 +174,9 @@ bool Client::tryDataExchange(int sockDesc, bool end, Packet **unused) {
     }
     return false;
 }
-bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused) {
+bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     std::unique_lock<std::mutex> lock(mutex);
-    if (dynamic_cast<EXIT*> (*unused)) {
-        delete(*unused);
-        *unused = nullptr;
+    if (dynamic_cast<EXIT*> (receiver.getPacket())) {
         log(1, "Client %d requested exiting, unregistering it.", id);
         //ConHandler::unregisterClient() calls unregisterServices() which takes this mutex
         lock.unlock();
@@ -192,13 +185,13 @@ bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Packet **unused) {
     }
     return false;
 }
-bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
+bool Client::getValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     Packet *packet;
     std::map<unsigned char, DigitalIn*>::iterator digInIter;
     std::map<unsigned char, AnalogIn*>::iterator anInIter;
     bool succes = true;
 
-    packet = Packet::packetFactory(sockDesc, sesskey);
+    packet = receiver.nextPacket();
     if (dynamic_cast<VAL*> (packet) || dynamic_cast<EOT*> (packet)) {
         while (!(dynamic_cast<EOT *> (packet))) {
             if (auto val = dynamic_cast<VAL *> (packet)) {
@@ -212,11 +205,9 @@ bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
                     succes = false;
                     log(2, "Client %d sent value of service %d which is not its input", id, val->getServiceId());
                 }
-                delete (packet);
-                packet = Packet::packetFactory(sockDesc, sesskey);
+                packet = receiver.nextPacket();
             } else {
                 log(3, "Wrong packet type received during data exchange with client %d, expected VAl or EOT", id);
-                delete (packet);
                 return false;
             }
         }
@@ -225,14 +216,11 @@ bool Client::getValues(int sockDesc, Sesskey *sesskey, Packet **unused) {
         } else {
             log(2, "There were some incorrect values form client %d", id);
         }
-        delete(packet);
         return true;
-    } else {
-        *unused = packet;
     }
     return false;
 }
-bool Client::setValues(int sockDesc, Sesskey *sesskey) {
+bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     Packet *packet;
     float val;
 
@@ -242,7 +230,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey) {
             if (!set.send(sockDesc, sesskey)) {
                 return false;
             }
-            packet = Packet::packetFactory(sockDesc, sesskey);
+            packet = receiver.nextPacket();
             if (!dynamic_cast<ACK *> (packet)) {
                 if (dynamic_cast<NAK *> (packet)) {
                     EOT eot;
@@ -250,10 +238,8 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey) {
                 } else if (packet != nullptr) {
                     log(3, "Received wrong message in response to SET, expected ACK or NAK.");
                 }
-                free(packet);
                 return false;
             }
-            free(packet);
         }
     }
     for (auto &&i :analogOutputs) {
@@ -262,7 +248,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey) {
             if (!set.send(sockDesc, sesskey)) {
                 return false;
             }
-            packet = Packet::packetFactory(sockDesc, sesskey);
+            packet = receiver.nextPacket();
             if (!dynamic_cast<ACK *> (packet)) {
                 if (dynamic_cast<NAK *> (packet)) {
                     EOT eot;
@@ -270,10 +256,8 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey) {
                 } else if (packet != nullptr) {
                     log(3, "Received wrong message in response to SET, expected ACK or NAK.");
                 }
-                free(packet);
                 return false;
             }
-            free(packet);
         }
     }
     EOT eot;
@@ -290,8 +274,6 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey) {
     return true;
 }
 bool Client::setExit(int sockDesc, Sesskey *sesskey) {
-    Packet *packet;
-
     EXIT exit((unsigned char) 0);
     if (!exit.send(sockDesc, sesskey)) {
         return false;

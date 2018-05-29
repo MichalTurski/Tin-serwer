@@ -24,8 +24,8 @@ private:
     std::condition_variable readyToExit;
     std::mutex readyToExitM;
 
-    void registration(int desc, struct in_addr cliAddr, Packet *unused);
-    Packet *tryDataExchange(int desc, Client *client);
+    void registration(int sockDesc, struct in_addr cliAddr, Receiver &receiver);
+    bool tryDataExchange(int sockDesc, Client *client, Receiver &receiver);
 public:
     ConHandler(std::string fileName);
     ~ConHandler();

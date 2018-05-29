@@ -2,6 +2,8 @@
 #define PACKET_H
 
 #include <cstring>
+#include <cstdint>
+#include <string>
 
 #include "sesskey.h"
 
