@@ -26,18 +26,22 @@ void Client::unregisterServices(Server &server) {
     for (auto&& i : digInputs) {
         server.unregisterService(i.second->getId());
         delete (i.second);
+        digInputs.erase(i.first);
     }
     for (auto&& i : analogInputs) {
         server.unregisterService(i.second->getId());
         delete(i.second);
+        analogInputs.erase(i.first);
     }
     for (auto&& i : digOutputs) {
         server.unregisterService(i.second->getId());
         delete(i.second);
+        digOutputs.erase(i.first);
     }
     for (auto&& i : analogOutputs) {
         server.unregisterService(i.second->getId());
         delete(i.second);
+        analogOutputs.erase(i.first);
     }
 }
 

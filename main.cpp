@@ -30,7 +30,6 @@ int initSocket(uint16_t port = 12345) {
 }
 
 void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd) {
-    //struct sigaction sa;
     siginfo_t siginfo;
     timespec roundRobinTimeout;
     std::condition_variable *readyToExit;
@@ -38,7 +37,7 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
     bool sigReceived = false;
 
     roundRobinTimeout.tv_nsec = 0;
-    roundRobinTimeout.tv_sec = 30;
+    roundRobinTimeout.tv_sec = 25;
     conHandler.getReadyToExit(&readyToExit, &readyToExitM);
     while (!sigReceived) {
         if (sigtimedwait(&sigset, &siginfo, &roundRobinTimeout) > 0) {
