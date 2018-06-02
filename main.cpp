@@ -2,7 +2,6 @@
 #include <thread>
 #include <csignal>
 #include <unistd.h>
-#include <bits/siginfo.h>
 
 #include "ClientMock.h"
 #include "ConHandler.h"

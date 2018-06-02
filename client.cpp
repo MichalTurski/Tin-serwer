@@ -202,9 +202,13 @@ bool Client::getValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
                 if ((digInIter = digInputs.find(val->getServiceId())) != digInputs.end()) {
                     digInIter->second->setVal(val->getValue());
                     digInIter->second->setTimestamp(val->getTimestamp());
+                    log(4, "Received digital input measurement [%b, %u] from client %d.",
+                        (int)val->getValue(), val->getTimestamp(), id);
                 } else if ((anInIter = analogInputs.find(val->getServiceId())) != analogInputs.end()) {
                     anInIter->second->setVal(val->getValue());
                     anInIter->second->setTimestamp(val->getTimestamp());
+                    log(4, "Received analog input measurement [%f, %u] from client %d.",
+                        val->getValue(), val->getTimestamp(), id);
                 } else {
                     succes = false;
                     log(2, "Client %d sent value of service %d which is not its input", id, val->getServiceId());

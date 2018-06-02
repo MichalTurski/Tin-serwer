@@ -113,8 +113,6 @@ bool ConHandler::tryDataExchange(int sockDesc, Client *client, Receiver &receive
                 readyToExit.notify_one();
             }
             uniqueLock.unlock();
-        } else {
-            log(2, "Data exchange with client %d succeed.", client->getId());
         }
         return true;
     }
