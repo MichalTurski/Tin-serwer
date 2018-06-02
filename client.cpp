@@ -168,7 +168,7 @@ bool Client::tryDataExchange(int sockDesc, bool end, Receiver &receiver) {
                 }
             } else {
                 lock.unlock(); //try_unregister() calls unregisterServices() which takes this mutex
-                if (tryUnregister(sockDesc, &sesskey, receiver)){
+                if (tryUnregister(receiver)){
                     log(2, "Data exchange with client %d succeed.", id);
                     used = true;
                     return true;
@@ -178,7 +178,7 @@ bool Client::tryDataExchange(int sockDesc, bool end, Receiver &receiver) {
     }
     return false;
 }
-bool Client::tryUnregister(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
+bool Client::tryUnregister(Receiver &receiver) {
     std::unique_lock<std::mutex> lock(mutex);
     if (dynamic_cast<EXIT*> (receiver.getPacket())) {
         log(1, "Client %d requested exiting, unregistering it.", id);
@@ -283,9 +283,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
 }
 bool Client::setExit(int sockDesc, Sesskey *sesskey) {
     EXIT exit((unsigned char) 0);
-    if (!exit.send(sockDesc, sesskey)) {
-        return false;
-    }
+    return (exit.send(sockDesc, sesskey) > 0);
 }
 bool Client::getUsed() {
     std::unique_lock<std::mutex> lock(mutex);

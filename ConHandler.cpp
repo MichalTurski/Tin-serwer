@@ -30,7 +30,7 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
                 if (configfile >> devicePubkeyFile){
                     try {
                         id = std::stoi(deviceId);
-                        client = new Client(id, devicePubkeyFile.c_str(), *this);
+                        client = new Client((uint8_t)id, devicePubkeyFile.c_str(), *this);
                     } catch (...) {
                         log(1, "Unable to register client");
                         exit (-1);
@@ -83,7 +83,7 @@ void ConHandler::registration(int sockDesc, struct in_addr cliAddr, Receiver &re
     std::map<uint8_t , Client*>::iterator idIter;
 
     if (!exitFlag) {
-        if (ID *id = dynamic_cast<ID *> (receiver.getPacket())) {
+        if (auto id = dynamic_cast<ID *> (receiver.getPacket())) {
             idIter = idClientPairs.find(id->getId());
             if (idIter != idClientPairs.end()) {
                 client = idIter->second;
@@ -106,13 +106,13 @@ bool ConHandler::tryDataExchange(int sockDesc, Client *client, Receiver &receive
     bool exitFlagOld;
     if (client->tryDataExchange(sockDesc, (exitFlagOld = exitFlag), receiver)) {
         if (exitFlagOld) {
-            log(1, "Succeed in disconnecting client number &d.", client->getId());
-            std::unique_lock<std::shared_timed_mutex> uniqueLock(addrClientMutex);
-            unregisterClient(client->getId());
+            log(1, "Succeed in disconnecting client number %d.", client->getId());
+            if (!unregisterClient(client->getId()))
+                log(3, "Failed to unregister client.");
+            std::shared_lock<std::shared_timed_mutex> sharedLock(addrClientMutex);
             if (addrClientPairs.empty()){
                 readyToExit.notify_one();
             }
-            uniqueLock.unlock();
         }
         return true;
     }
@@ -166,5 +166,6 @@ void ConHandler::roundRobinWalk() {
 }
 
 void conHandle(int id, ConHandler &conHandler, int desc, struct in_addr cliAddr) {
+    (void)id;
     conHandler.handle(desc, cliAddr);
 }

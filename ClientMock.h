@@ -21,7 +21,7 @@ bool verifyAgainstServer(int sock, Privkey &privkey) {
     unsigned int signLen;
     Packet *packet = Packet::packetFactory(sock, nullptr);
     if (packet != nullptr) {
-        if (CHALL *chall = dynamic_cast<CHALL *>(packet)) {
+        if (auto chall = dynamic_cast<CHALL *>(packet)) {
             if (privkey.sign(chall->getChall(), 8, sign, &signLen) > 0) {
                 delete (packet);
                 CHALL_RESP *challResp = CHALL_RESP::createFromEncrypted(sign);
@@ -49,7 +49,7 @@ bool verifyAgainstClient(int sock, Pubkey &pubkey) {
     CHALL *chall = CHALL::createFromRandom(random);
     if (chall->send(sock, nullptr) > 0) {
         response = Packet::packetFactory(sock, nullptr);
-        if (CHALL_RESP *challResp = dynamic_cast<CHALL_RESP *> (response)) {
+        if (auto challResp = dynamic_cast<CHALL_RESP *> (response)) {
             if (pubkey.verify_sign( random, 8, challResp->getResp(), 256)) {
                 delete(chall);
                 return true;
@@ -90,14 +90,14 @@ void clientMock() {
     if (verifyAgainstServer(cliSock, privkey)) {
         if (verifyAgainstClient(cliSock, pubkey)) {
             packet = Packet::packetFactory(cliSock, nullptr);
-            if (KEY *keyPck = dynamic_cast<KEY *> (packet)) {
+            if (auto keyPck = dynamic_cast<KEY *> (packet)) {
                 Sesskey sesskey(*keyPck, privkey);
                 delete(keyPck);
                 for(int i = 0; i<5; i++) {
                     DESC desc(name, unit, 1.2, 1.3);
                     desc.send(cliSock, &sesskey);
                     packet = Packet::packetFactory(cliSock, &sesskey);
-                    if(ACK *ack = dynamic_cast<ACK*> (packet)){
+                    if(auto ack = dynamic_cast<ACK*> (packet)){
                         std::cout << "Service id = "<< (int) ack->getId() << std::endl;
                     }
                 }

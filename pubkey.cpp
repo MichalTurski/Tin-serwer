@@ -48,7 +48,7 @@ bool Pubkey::verify_resp(const unsigned char *resp, size_t resp_size, const unsi
 	    delete(buf);
 		return false;
 	}
-	for (int i = 0; i < chal_size; i++) {
+	for (size_t i = 0; i < chal_size; i++) {
 		if (buf[i] != chal [i]) {
 			delete[] buf;
 			return false;

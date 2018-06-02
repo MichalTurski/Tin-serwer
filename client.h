@@ -28,7 +28,7 @@ private:
 	bool getValues(int sockDesc, Sesskey *sesskey, Receiver &receiver);
 	bool setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver);
 	bool setExit(int sockDesc, Sesskey *sesskey);
-	bool tryUnregister(int sockDesc, Sesskey *sesskey, Receiver &receiver);
+	bool tryUnregister(Receiver &receiver);
 public:
 	void unregisterServices(Server &server);
 	Client(uint8_t id, const char *pubkey, ConHandler &conHandler);

@@ -21,7 +21,7 @@ int readTillDone(int soc_desc, unsigned char *buf, ssize_t msg_size) {
 		}
 		i += readed;
 	}
-	return i;
+	return (int)i;
 }
 ssize_t writeTillDone(int soc_desc, const unsigned char *buf, ssize_t msg_size) {
 	ssize_t i = 0;
@@ -75,7 +75,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 		return nullptr;
 
 	if (is_crypted) {
-		sesskey->decrypt(new_buf, encrypted, expected_size);
+		sesskey->decrypt(new_buf, encrypted, (unsigned int)expected_size);
 		log(4, "Received encrypted packet, plaintext length = %d, encrpypted length = %d.",
 			plain_len, encryptedLen(plain_len));
 	} else {
@@ -92,7 +92,7 @@ Packet* Packet::packetFactory(int soc_desc, const Sesskey *sesskey){
 				delete[] encrypted;
 				return nullptr;
 		}
-		memcpy(new_buf, encrypted, expected_size);
+		memcpy(new_buf, encrypted, (unsigned int)expected_size);
 	}
 	delete[] encrypted;
 
@@ -140,7 +140,7 @@ Packet::Packet(const unsigned char *buf_in, uint32_t buf_len): buf_size(buf_len)
 	memcpy(buf, buf_in, buf_len);
 }
 Packet::Packet(size_t size) {
-    buf_size = size;
+    buf_size = (uint32_t)size;
 	buf = new unsigned char [size];
 }
 Packet::~Packet() {
@@ -157,7 +157,7 @@ ssize_t EncrptedPacket::send(int soc_desc, const Sesskey *sesskey) const {
 	ret = writeTillDone(soc_desc, (unsigned char*) &buf_size, sizeof(buf_size));
 	if (ret <= 0)
 		return ret;
-	ret = writeTillDone(soc_desc, (unsigned char*) &boolean, sizeof(unsigned char));
+	ret = writeTillDone(soc_desc, &boolean, sizeof(unsigned char));
 	if (ret <= 0)
 		return ret;
 	ret = writeTillDone(soc_desc, encrypted, encrypted_size);
@@ -166,11 +166,12 @@ ssize_t EncrptedPacket::send(int soc_desc, const Sesskey *sesskey) const {
 }
 ssize_t PlainPacket::send(int soc_desc, const Sesskey *sesskey) const {
     ssize_t ret;
+	(void)sesskey;
 	unsigned char boolean = (unsigned char) false;
     ret = writeTillDone(soc_desc, (unsigned char*) &buf_size, sizeof(buf_size));
     if (ret <= 0)
 		return ret;
-	ret = writeTillDone(soc_desc, (unsigned char*) &boolean, sizeof(unsigned char));
+	ret = writeTillDone(soc_desc, &boolean, sizeof(unsigned char));
 	if (ret <= 0)
 		return ret;
 	ret = writeTillDone(soc_desc, buf, buf_size);

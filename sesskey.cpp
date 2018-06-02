@@ -39,12 +39,12 @@ int Sesskey::encrypt(unsigned char *dest, const unsigned char *src, size_t src_s
 		return -1;
 	}
 
-	if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv)) {
+	if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), nullptr, key, iv)) {
 		log(3, "Unable to init EVP encryption.");
 		return -1;
 	}
 	//while (ciphertext_len < src_size) {
-		if (1 != EVP_EncryptUpdate(ctx, dest, &len, src, src_size)){
+		if (1 != EVP_EncryptUpdate(ctx, dest, &len, src, (int)src_size)){
 			log(3, "Unable to encrypt.");
 			return -1;
 		}
@@ -64,14 +64,13 @@ int Sesskey::encrypt(unsigned char *dest, const unsigned char *src, size_t src_s
 // This function is called only for messages that needs decryption
 int Sesskey::decrypt(unsigned char *dest, const unsigned char *src, size_t src_size) const{
 	const unsigned char *iv;
-	unsigned char plain_size;
 	int len;
 	int msg_buf_size;
 
-	msg_buf_size = src_size - 16;// -16 for iv
+	msg_buf_size = (int)(src_size - 16);// -16 for iv
 
 	iv = &src[src_size - 16];// -16 for iv, -1 for zero-based counting
-	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv)) {
+	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), nullptr, key, iv)) {
 		log(3, "Unable to init EVP decryption.");
 		return -1;
 	}
