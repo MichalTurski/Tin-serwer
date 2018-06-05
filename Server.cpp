@@ -91,6 +91,7 @@ void Server::mqReceiveLoop() {
         } else if (packet == nullptr) {
             if (errno == EBADF) {
                 log(3, "Message queue have been closed.");
+                raise(SIGINT);
                 working = false;
             } else {
                 log(3, "Reading from message queue returned with %s.", strerror(errno));

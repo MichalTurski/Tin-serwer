@@ -151,7 +151,7 @@ bool ConHandler::unregisterClient(uint8_t id) {
     }
     return false;
 }
-void ConHandler::roundRobinWalk() {
+void ConHandler::clockWalk() {
     Client *client;
     std::map<uint32_t, Client*>::iterator iter;
     std::shared_lock<std::shared_timed_mutex> sharedLock(addrClientMutex);

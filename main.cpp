@@ -44,8 +44,9 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
             log(1, "Received signal %s, trying do disconnect from all clients.",
                 strsignal(siginfo.si_signo));
             conHandler.setExit();
+        } else {
+            conHandler.clockWalk();
         }
-        conHandler.roundRobinWalk();
     }
     if (conHandler.clientsRegistered()) {
         std::unique_lock<std::mutex> lock(*readyToExitM);
