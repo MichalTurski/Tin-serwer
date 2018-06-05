@@ -23,6 +23,9 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
         if (! privkeyFile.empty()){
             try {
                 server = new Server(privkeyFile.c_str());
+#ifndef NO_MQ
+                mqReceiver = std::thread(&Server::mqReceiveLoop, server);
+#endif //NO_MQ
             } catch (...) {
                 exit (-1);
             }
@@ -55,6 +58,9 @@ ConHandler::~ConHandler() {
         delete(it->second);
     }
     delete(server);
+#ifndef NO_MQ
+    mqReceiver.join();
+#endif //NO_MQ
 }
 void ConHandler::handle(int desc, struct in_addr &cliAddr) {
     Client *client;

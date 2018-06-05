@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     int verbosity = 2;
     std::string configfile = "configfile.conf";
     std::string logfile = "server.log";
-    int port = 12345;
+    uint16_t port = 12345;
     socklen_t assocSize;
     std::atomic<bool> end;
     end = false;
@@ -139,13 +139,14 @@ int main(int argc, char **argv) {
 #ifndef NO_THREAD_POOL
     tp.stop(true);
 #endif //NOTHREAD_POOL
-    close(socket);
 
 #ifndef NO_CLIENT_MOCK
     mock.join();
 #endif //NO_CLIENT_MOCK
 #ifndef NO_TERMINATION
     terminationThread.join();
+#else
+    close(socket);
 #endif //NO_TERMINATION
     logClose();
     return 0;

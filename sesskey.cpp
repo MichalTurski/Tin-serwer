@@ -18,7 +18,7 @@ Sesskey::Sesskey(const KEY &keyPck, const Privkey &privkey) {
 	/*if (!(ctx = EVP_CIPHER_CTX_new()))
 		log(3, "Unable to create OPENSSL context.\n");*/
 	ctx = EVP_CIPHER_CTX_new();
-	if (privkey.decrypt(keyPck.getKeyBuf(), 256, key) == -1){
+	if (privkey.decrypt(keyPck.getKeyBuf(), 256, key) == -1) {
 	    log(3, "Unable to decrypt session key");
 	}
 //	memcpy(key, keyPck.getKeyBuf(), 16);

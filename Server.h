@@ -5,19 +5,28 @@
 #ifndef SERWER_SERVER_H
 #define SERWER_SERVER_H
 
+#include <thread>
 #include "privkey.h"
 #include "ServiceTable.h"
 #include "Receiver.h"
+#include "AddQueue.h"
+#include "ReadQueue.h"
 
 class Server {
 private:
     Privkey privkey;
     ServiceTable serviceTable;
+    std::thread mqReceiver;
+#ifndef NO_MQ
+    AddQueue sendMsgQueue;
+    ReadQueue readMsgQueue;
+#endif //NO_MQ
 public:
-    Server(const char *file);
-//    Server();
+    explicit Server(const char *file);
     ~Server();
-//    void loadPrivkey(const char file);
+#ifndef NO_MQ
+    void mqReceiveLoop();
+#endif //NO_MQ
     bool verifyServer(int sockDesc, Receiver &receiver) const;
     unsigned char reserveId();
     bool unreserveId(unsigned char id);

@@ -8,11 +8,13 @@
 Receiver::Receiver(int socDesc): socDesc(socDesc) {
     curr = nullptr;
     sesskey = nullptr;
+#ifndef NO_TIMEOUT
     struct timeval tv;
 
     tv.tv_sec = 5;
     tv.tv_usec = 0;
     setsockopt(socDesc, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+#endif //NO_TIMEOUT
 }
 
 Receiver::~Receiver() {

@@ -23,6 +23,9 @@ private:
     std::atomic<bool> exitFlag;
     std::condition_variable readyToExit;
     std::mutex readyToExitM;
+#ifndef NO_MQ
+    std::thread mqReceiver;
+#endif //NO_MQ
 
     void registration(int sockDesc, struct in_addr cliAddr, Receiver &receiver);
     bool tryDataExchange(int sockDesc, Client *client, Receiver &receiver);

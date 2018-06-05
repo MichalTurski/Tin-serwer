@@ -22,6 +22,7 @@ public:
     bool unreserve(unsigned char id);
     bool push(Service *service, unsigned char id);
     bool remove(unsigned char id);
+    Service *getService(unsigned char id);
 };
 
 

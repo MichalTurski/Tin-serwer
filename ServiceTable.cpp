@@ -68,3 +68,10 @@ bool ServiceTable::remove(unsigned char num) {
     }
     return false;
 }
+Service* ServiceTable::getService(unsigned char id) {
+    if (id >= services.size()) {
+        return nullptr;
+    } else {
+        return services[id];
+    }
+}

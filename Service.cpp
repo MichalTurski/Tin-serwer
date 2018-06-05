@@ -14,7 +14,7 @@ Service* Service::serviceFactory(unsigned char id, unsigned char devClass, const
             service = new AnalogIn(id, name, unit);
             break;
         case (DIGITAL_IN):
-            service = new DigitalOut(id, name, unit);
+            service = new DigitalIn(id, name, unit);
             break;
         case (ANALOG_OUT):
             service = new AnalogOut(id, name, unit, min, max);
@@ -31,8 +31,20 @@ Service* Service::serviceFactory(unsigned char id, unsigned char devClass, const
 unsigned char Service::getId() const {
     return id;
 }
+const std::string& Service::getName() const {
+    return name;
+}
+const std::string& Service::getUnit() const {
+    return unit;
+}
+float Service::getMin() const {
+    return 0;
+}
+float Service::getMax() const {
+    return 0;
+}
 
-float AnalogIn::getVal() {
+float AnalogIn::getVal() const {
     float toRet;
     mutex.lock();
     toRet = val;
@@ -44,7 +56,7 @@ void AnalogIn::setVal(float newVal) {
     val = newVal;
     mutex.unlock();
 }
-time_t AnalogIn::getTimestamp() {
+time_t AnalogIn::getTimestamp() const {
     time_t ts;
     mutex.lock();
     ts = timestamp;
@@ -57,7 +69,7 @@ void AnalogIn::setTimestamp(time_t time) {
     mutex.unlock();
 }
 
-bool DigitalIn::getVal() {
+bool DigitalIn::getVal() const {
     bool toRet;
     mutex.lock();
     toRet = val;
@@ -69,7 +81,7 @@ void DigitalIn::setVal(float newVal) {
     val = (newVal > 0.5);
     mutex.unlock();
 }
-time_t DigitalIn::getTimestamp() {
+time_t DigitalIn::getTimestamp() const {
     time_t ts;
     mutex.lock();
     ts = timestamp;
@@ -85,7 +97,7 @@ void DigitalIn::setTimestamp(time_t time) {
 AnalogOut::AnalogOut(unsigned char id, std::string&& name,
                      std::string&& unit, float min, float max): Service(id, name, unit), current(min),
                                                                 min(min), max(max), change(false){}
-float AnalogOut::getVal() {
+float AnalogOut::getVal() const {
     float toRet;
     mutex.lock();
     toRet = current;
@@ -129,7 +141,7 @@ float AnalogOut::getMax() const {
 
 DigitalOut::DigitalOut(unsigned char id, std::string&& name,
                        std::string&& unit): Service(id, name, unit), current(false), change(false){}
-bool DigitalOut::getVal() {
+bool DigitalOut::getVal() const {
     bool toRet;
     mutex.lock();
     toRet = current;

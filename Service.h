@@ -17,7 +17,7 @@ private:
     };
     unsigned char id;
 protected:
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::string name;
     std::string unit;
     Service(unsigned char id, std::string &name, std::string& unit);
@@ -26,6 +26,10 @@ public:
                                    const char *unit, float min, float max);
     virtual ~Service() = default;
     unsigned char getId() const;
+    const std::string& getName() const ;
+    const std::string& getUnit() const ;
+    float getMin() const ;
+    float getMax() const ;
 };
 
 class AnalogIn: public Service {
@@ -35,9 +39,9 @@ private:
 public:
     AnalogIn(unsigned char id, std::string&& name, std::string&& unit): Service(id, name, unit),
                                                                         val(0), timestamp(0) {}
-    float getVal();
+    float getVal() const;
     void setVal(float newVal);
-    time_t getTimestamp();
+    time_t getTimestamp() const;
     void setTimestamp(time_t time);
 };
 
@@ -48,9 +52,9 @@ private:
 public:
     DigitalIn(unsigned char id, std::string&& name, std::string&& unit): Service(id, name, unit),
                                                                          val(false), timestamp(0) {}
-    bool getVal();
+    bool getVal() const;
     void setVal(float newVal);
-    time_t getTimestamp();
+    time_t getTimestamp() const;
     void setTimestamp(time_t time);
 };
 
@@ -64,7 +68,7 @@ private:
     bool change;
 public:
     AnalogOut(unsigned char id, std::string&& name, std::string&& unit, float min, float max);
-    float getVal();
+    float getVal() const;
     bool beginSetting(float *val);
     void finalizeSetting();
     void setVal(float newVal);
@@ -80,7 +84,7 @@ private:
     bool change;
 public:
     DigitalOut(unsigned char id, std::string&& name, std::string&& unit);
-    bool getVal();
+    bool getVal() const;
     bool beginSetting(float *val);
     void finalizeSetting();
     void setVal(bool newVal);
