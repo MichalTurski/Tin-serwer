@@ -60,7 +60,7 @@ void Server::mqReceiveLoop() {
                 VAL val(digIn->getId(), digIn->getVal(), digIn->getTimestamp());
                 val.setPacketID(PCK_Q_VAL);
                 sendMsgQueue.addMessage(&val);
-            } else if (auto anIn = dynamic_cast<const AnalogIn*> (service)) {
+            } else if (auto anIn = dynamic_cast<const Input*> (service)) {
                 VAL val(anIn->getId(), anIn->getVal(), anIn->getTimestamp());
                 val.setPacketID(PCK_Q_VAL);
                 sendMsgQueue.addMessage(&val);
@@ -69,7 +69,7 @@ void Server::mqReceiveLoop() {
                 VAL val(digOut->getId(), digOut->getVal(), (time_t)ugly_hack);
                 val.setPacketID(PCK_Q_VAL);
                 sendMsgQueue.addMessage(&val);
-            } else if (auto anOut = dynamic_cast<const AnalogOut*> (service)) {
+            } else if (auto anOut = dynamic_cast<const Output*> (service)) {
                 uint32_t ugly_hack = 0;
                 VAL val(anOut->getId(), anOut->getVal(), (time_t)ugly_hack);
                 val.setPacketID(PCK_Q_VAL);
@@ -81,7 +81,7 @@ void Server::mqReceiveLoop() {
             Service *service = serviceTable.getService(get->getId());
             if (auto digOut = dynamic_cast<DigitalOut*> (service)) {
                 digOut->setVal((bool) set->getValue());
-            } else if (auto anOut = dynamic_cast<AnalogOut*> (service)) {
+            } else if (auto anOut = dynamic_cast<Output*> (service)) {
                 anOut->setVal(set->getValue());
             } else if (set == nullptr) {
                 log (3, "Second server part tried to set value of non-registered service %d.", get->getId());

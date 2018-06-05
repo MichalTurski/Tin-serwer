@@ -18,10 +18,8 @@ private:
 	std::atomic<bool> used;
 	std::mutex mutex;
 
-	std::map<unsigned char, DigitalIn*> digInputs;
-	std::map<unsigned char, AnalogIn*> analogInputs;
-	std::map<unsigned char, DigitalOut*> digOutputs;
-	std::map<unsigned char, AnalogOut*> analogOutputs;
+	std::map<unsigned char, Input*> inputs;
+	std::map<unsigned char, Output*> outputs;
 
     bool verifyClient(int sockDesc, Receiver &receiver) const;
 	bool registerServices(int sockDesc, Server &server, const Sesskey &sesskey, Receiver &receiver);

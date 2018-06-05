@@ -12,36 +12,22 @@ RNG rng;
 Client::Client(uint8_t id, const char *pubkey, ConHandler &conHandler): id(id), pubkey(pubkey),
                                                                         conHandler(conHandler) {}
 Client::~Client() {
-    for (auto&& i : digInputs)
+    for (auto&& i : inputs)
         delete(i.second);
-    for (auto&& i : analogInputs)
-        delete(i.second);
-    for (auto&& i : digOutputs)
-        delete(i.second);
-    for (auto&& i : analogOutputs)
+    for (auto&& i : outputs)
         delete(i.second);
 }
 void Client::unregisterServices(Server &server) {
     std::unique_lock<std::mutex> lock(mutex);
-    for (auto&& i : digInputs) {
-        server.unregisterService(i.second->getId());
-        delete (i.second);
-        digInputs.erase(i.first);
-    }
-    for (auto&& i : analogInputs) {
+    for (auto&& i : inputs) {
         server.unregisterService(i.second->getId());
         delete(i.second);
-        analogInputs.erase(i.first);
+        inputs.erase(i.first);
     }
-    for (auto&& i : digOutputs) {
+    for (auto&& i : outputs) {
         server.unregisterService(i.second->getId());
         delete(i.second);
-        digOutputs.erase(i.first);
-    }
-    for (auto&& i : analogOutputs) {
-        server.unregisterService(i.second->getId());
-        delete(i.second);
-        analogOutputs.erase(i.first);
+        outputs.erase(i.first);
     }
 }
 
@@ -112,14 +98,10 @@ bool Client::registerServices(int sockDesc, Server &server, const Sesskey &sessk
                 if (dynamic_cast<EOT *> (packet)) {
                     for (auto i : services) {
                         server.addService(i->getId(), i);
-                        if (auto j = dynamic_cast<DigitalIn*> (i))
-                            digInputs.insert(std::make_pair(j->getId(), j));
-                        if (auto&& j = dynamic_cast<AnalogIn*> (i))
-                            analogInputs.insert(std::make_pair(j->getId(), j));
-                        if (auto&& j = dynamic_cast<DigitalOut*> (i))
-                            digOutputs.insert(std::make_pair(j->getId(), j));
-                        if (auto&& j = dynamic_cast<AnalogOut*> (i))
-                            analogOutputs.insert(std::make_pair(j->getId(), j));
+                        if (auto&& j = dynamic_cast<Input*> (i))
+                            inputs.insert(std::make_pair(j->getId(), j));
+                        if (auto&& j = dynamic_cast<Output*> (i))
+                            outputs.insert(std::make_pair(j->getId(), j));
                     }
                     return (true);
                 }
@@ -191,23 +173,17 @@ bool Client::tryUnregister(Receiver &receiver) {
 }
 bool Client::getValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     Packet *packet;
-    std::map<unsigned char, DigitalIn*>::iterator digInIter;
-    std::map<unsigned char, AnalogIn*>::iterator anInIter;
+    std::map<unsigned char, Input*>::iterator inputIter;
     bool succes = true;
 
     packet = receiver.nextPacket();
     if (dynamic_cast<VAL*> (packet) || dynamic_cast<EOT*> (packet)) {
         while (!(dynamic_cast<EOT *> (packet))) {
             if (auto val = dynamic_cast<VAL *> (packet)) {
-                if ((digInIter = digInputs.find(val->getServiceId())) != digInputs.end()) {
-                    digInIter->second->setVal(val->getValue());
-                    digInIter->second->setTimestamp(val->getTimestamp());
-                    log(4, "Received digital input measurement [%b, %u] from client %d.",
-                        (int)val->getValue(), val->getTimestamp(), id);
-                } else if ((anInIter = analogInputs.find(val->getServiceId())) != analogInputs.end()) {
-                    anInIter->second->setVal(val->getValue());
-                    anInIter->second->setTimestamp(val->getTimestamp());
-                    log(4, "Received analog input measurement [%f, %u] from client %d.",
+                if ((inputIter = inputs.find(val->getServiceId())) != inputs.end()) {
+                    inputIter->second->setVal(val->getValue());
+                    inputIter->second->setTimestamp(val->getTimestamp());
+                    log(4, "Received input measurement [%f, %u] from client %d.",
                         val->getValue(), val->getTimestamp(), id);
                 } else {
                     succes = false;
@@ -232,25 +208,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     Packet *packet;
     float val;
 
-    for (auto &&i :digOutputs) {
-        if (i.second->beginSetting(&val)) {
-            SET set(i.second->getId(), val);
-            if (!set.send(sockDesc, sesskey)) {
-                return false;
-            }
-            packet = receiver.nextPacket();
-            if (!dynamic_cast<ACK *> (packet)) {
-                if (dynamic_cast<NAK *> (packet)) {
-                    EOT eot;
-                    eot.send(sockDesc, sesskey);//don't care about success, closing socket anyway.
-                } else if (packet != nullptr) {
-                    log(3, "Received wrong message in response to SET, expected ACK or NAK.");
-                }
-                return false;
-            }
-        }
-    }
-    for (auto &&i :analogOutputs) {
+    for (auto &&i :outputs) {
         if (i.second->beginSetting(&val)) {
             SET set(i.second->getId(), val);
             if (!set.send(sockDesc, sesskey)) {
@@ -273,10 +231,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
         return false;
     }
     log(2, "Setting values of client %d succeed.", id);
-    for (auto &&i :digOutputs) {
-        i.second->finalizeSetting();
-    }
-    for (auto &&i :analogOutputs) {
+    for (auto &&i :outputs) {
         i.second->finalizeSetting();
     }
     return true;
