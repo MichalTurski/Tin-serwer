@@ -241,14 +241,10 @@ const unsigned char* KEY::getKeyBuf() const {
 	return &buf[1];
 }
 
-/*DESC::DESC(Packet &&packet): EncrptedPacket(packet.buf) {
-	packet.buf = NULL;
-}*/
 unsigned char DESC::getDeviceClass() const {
 	return buf[1];
 }
 const char *DESC::getName() const {
-    //return strdup(reinterpret_cast<char*> (&buf[2]));
 	return reinterpret_cast<char*> (&buf[2]);
 }
 const char *DESC::getUnit() const {
@@ -271,7 +267,7 @@ DESC::DESC(std::string &name, std::string &unit, float min, float max):
 	    throw(std::runtime_error("Unit name is too long."));
 	}
 	buf[0] = PCK_DESC;
-	buf[1] = 0;//TODO: buf[1] = ?;
+	buf[1] = 0x00;
 	memcpy(&buf[2], name.c_str(), name.size()+1);
 	memcpy(&buf[buf_size - 12], unit.c_str(), 4);
 	memcpy(&buf[buf_size - 8], &min, sizeof(float));

@@ -5,11 +5,13 @@
 #include <openssl/conf.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <csignal>
 
 #include "Server.h"
 #include "packet.h"
 #include "log.h"
 #include "common.h"
+#include "queuePacket.h"
 
 Server::Server(const char *file): privkey(file)
 #ifndef NO_MQ
@@ -51,44 +53,37 @@ void Server::initComunication() {
 #ifndef NO_MQ
 void Server::mqReceiveLoop() {
     bool working = true;
-    Packet *packet;
+    QueuePacket *inPacket;
+    time_t mTime;
     while (working) {
-        packet = readMsgQueue.readToPacket();
-        if (auto get = dynamic_cast<GET*> (packet)) {
-            const Service *service = serviceTable.getService(get->getId());
-            if (auto digIn = dynamic_cast<const DigitalIn*> (service)) {
-                VAL val(digIn->getId(), digIn->getVal(), digIn->getTimestamp());
-                val.setPacketID(PCK_Q_VAL);
-                sendMsgQueue.addMessage(&val);
-            } else if (auto anIn = dynamic_cast<const Input*> (service)) {
-                VAL val(anIn->getId(), anIn->getVal(), anIn->getTimestamp());
-                val.setPacketID(PCK_Q_VAL);
-                sendMsgQueue.addMessage(&val);
-            } else if (auto digOut = dynamic_cast<const DigitalOut*> (service)) {
-                uint32_t ugly_hack = 0;
-                VAL val(digOut->getId(), digOut->getVal(), (time_t)ugly_hack);
-                val.setPacketID(PCK_Q_VAL);
-                sendMsgQueue.addMessage(&val);
-            } else if (auto anOut = dynamic_cast<const Output*> (service)) {
-                uint32_t ugly_hack = 0;
-                VAL val(anOut->getId(), anOut->getVal(), (time_t)ugly_hack);
-                val.setPacketID(PCK_Q_VAL);
-                sendMsgQueue.addMessage(&val);
+        inPacket = QueuePacket::packetFromQueue(&readMsgQueue);
+        //todo: mutex dla obrony przed destruktorem servera
+        if (auto get = dynamic_cast<Q_GET*> (inPacket)) {
+            if (get->getId() == 0) {
+                //TODO
             } else {
-                log (3, "Second server part requested value of non-registered service %d.", get->getId());
+                const Service *service = serviceTable.getService(get->getId());
+                if (auto input = dynamic_cast<const Input *> (service)) {
+                    Q_VAL val(input->getId(), input->getVal(), input->getTimestamp());
+                    val.addToQueue(&sendMsgQueue);
+                } else if (auto output = dynamic_cast<const Output *> (service)) {
+                    time(&mTime);
+                    Q_VAL val(output->getId(), output->getVal(), mTime);
+                    val.addToQueue(&sendMsgQueue);
+                } else {
+                    log(3, "Second server part requested value of non-registered service %d.", get->getId());
+                }
             }
-        } else if (auto set = dynamic_cast<SET*> (packet)) {
+        } else if (auto set = dynamic_cast<Q_SET*> (inPacket)) {
             Service *service = serviceTable.getService(get->getId());
-            if (auto digOut = dynamic_cast<DigitalOut*> (service)) {
-                digOut->setVal((bool) set->getValue());
-            } else if (auto anOut = dynamic_cast<Output*> (service)) {
-                anOut->setVal(set->getValue());
+            if (auto out = dynamic_cast<Output*> (service)) {
+                out->setVal(set->getValue());
             } else if (set == nullptr) {
                 log (3, "Second server part tried to set value of non-registered service %d.", get->getId());
             } else {
                 log (3, "Second server part tried to set value of input service %d.", get->getId());
             }
-        } else if (packet == nullptr) {
+        } else if (inPacket == nullptr) {
             if (errno == EBADF) {
                 log(3, "Message queue have been closed.");
                 raise(SIGINT);
@@ -97,6 +92,7 @@ void Server::mqReceiveLoop() {
                 log(3, "Reading from message queue returned with %s.", strerror(errno));
             }
         }
+        delete (inPacket);
     }
 }
 #endif //NO_MQ
@@ -135,9 +131,9 @@ bool Server::addService(unsigned char id, Service *service) {
     bool result;
     result = serviceTable.push(service, id);
 #ifndef NO_MQ
-    DESC desc(service->getName(), service->getUnit(), service->getMin(), service->getMax());
-    desc.setPacketID(PCK_Q_DESC);
-    sendMsgQueue.addMessage(&desc);
+    Q_DESC desc(service->getId(), service->getType(), service->getName(), service->getUnit(),
+                service->getMin(), service->getMax());
+    desc.addToQueue(&sendMsgQueue);
 #endif //NO_MQ
     return result;
 }
@@ -145,9 +141,8 @@ bool Server::unregisterService(unsigned char id) {
     bool result;
     result = serviceTable.remove(id);
 #ifndef NO_MQ
-    EXIT exit(id);
-    exit.setPacketID(PCK_Q_EXIT);
-    sendMsgQueue.addMessage(&exit);
+    Q_EXIT exit(id);
+    exit.addToQueue(&sendMsgQueue);
 #endif //NO_MQ
     return result;
 }

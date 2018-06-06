@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS -Wall)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_TERMINATION")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_CLIENT_MOCK")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_THREAD_POOL")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_MQ")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_MQ")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_TIMEOUT")
 
 include_directories(/usr/lib/)
@@ -27,7 +27,8 @@ add_executable(Serwer main.cpp
         Service.cpp Service.h
         ServiceTable.cpp ServiceTable.h
         log.cpp log.h
-#        AddQueue.cpp AddQueue.h
-#        ReadQueue.cpp ReadQueue.h
+        AddQueue.cpp AddQueue.h
+        ReadQueue.cpp ReadQueue.h
+        queuePacket.cpp queuePacket.h
         common.h CTPL/ctpl_stl.h ClientMock.h
         Receiver.cpp Receiver.h)
