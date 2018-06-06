@@ -59,6 +59,7 @@ void Server::mqReceiveLoop() {
         inPacket = QueuePacket::packetFromQueue(&readMsgQueue);
         //todo: mutex dla obrony przed destruktorem servera
         if (auto get = dynamic_cast<Q_GET*> (inPacket)) {
+            log(4, "Received Q_GET form message queue.");
             if (get->getId() == 0) {
                 //TODO
             } else {
@@ -75,6 +76,7 @@ void Server::mqReceiveLoop() {
                 }
             }
         } else if (auto set = dynamic_cast<Q_SET*> (inPacket)) {
+            log(4, "Received Q_SET form message queue.");
             Service *service = serviceTable.getService(get->getId());
             if (auto out = dynamic_cast<Output*> (service)) {
                 out->setVal(set->getValue());
@@ -91,6 +93,8 @@ void Server::mqReceiveLoop() {
             } else {
                 log(3, "Reading from message queue returned with %s.", strerror(errno));
             }
+        } else {
+            log(3, "Message form message queue was not recognized.");
         }
         delete (inPacket);
     }
