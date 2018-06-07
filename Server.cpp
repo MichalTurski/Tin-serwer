@@ -13,11 +13,14 @@
 #include "common.h"
 #include "queuePacket.h"
 
+#define MSG_SIZE 128
+#define MAX_MSGS 10
+
 Server::Server(const std::string &privkeyFile, const std::string &inMQ,
                const std::string &outMQ): privkey(privkeyFile.c_str())
 #ifndef NO_MQ
-                                  ,sendMsgQueue(outMQ, O_WRONLY),
-                                  readMsgQueue(inMQ, O_RDONLY)
+                                  ,sendMsgQueue(outMQ, O_CREAT | O_WRONLY, QUEUE_MODE, MSG_SIZE, MAX_MSGS),
+                                  readMsgQueue(inMQ, O_CREAT | O_RDONLY, QUEUE_MODE, MSG_SIZE, MAX_MSGS)
 #endif// NO_MQ
 {
     OPENSSL_config (nullptr);
