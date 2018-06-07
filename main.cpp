@@ -28,12 +28,15 @@ int initSocket(uint16_t port = 12345) {
     return listenSock;
 }
 
+#ifndef NO_MOBILE_SERVER
 pid_t runMobileServer(const std::string &config, const std::string &outMQ, const std::string &inMQ) {
     pid_t pid;
     pid = fork();
     if (pid == 0) {
-        if (execl("echo", config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
+       // if (execl("echo", config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
+        if (execl("/bin/date", "date", 0, NULL) != 0){
             log(1, "Failed to run mobile server, aborting");
+            kill(getppid(), SIGINT);
             exit(-1);
         }
         /*NOTREACHED*/
@@ -43,6 +46,8 @@ pid_t runMobileServer(const std::string &config, const std::string &outMQ, const
     }
     return pid;
 }
+
+#endif //NO_MOBILE_SERVER
 
 void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd, pid_t mobilePid) {
     siginfo_t siginfo;
@@ -141,7 +146,9 @@ int main(int argc, char **argv) {
         exit (-1);
     }
     ConHandler conHandler(embededConf, inMq, outMq);
-    mobilePid =runMobileServer(mobileConf, outMq, inMq);
+#ifndef NO_MOBILE_SERVER
+    mobilePid = runMobileServer(mobileConf, outMq, inMq);
+#endif //NO_MOBILE_SERVER
     sigset_t termset;
     sigemptyset(&termset);
     sigaddset(&termset, SIGINT);
@@ -178,10 +185,12 @@ int main(int argc, char **argv) {
 #endif //NO_CLIENT_MOCK
 #ifndef NO_TERMINATION
     terminationThread.join();
-    wait();//wait for mobile server
 #else
     close(socket);
 #endif //NO_TERMINATION
+#ifndef NO_MOBILE_SERVER
+    wait(nullptr);//wait for mobile server
+#endif //NO_MOBILE_SERVER
     logClose();
     return 0;
 }
