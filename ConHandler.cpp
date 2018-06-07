@@ -74,9 +74,12 @@ void ConHandler::handle(int desc, struct in_addr &cliAddr) {
         //In our opinnion client have been verified, we can do regular job
         client = ipIter->second;
         if (!tryDataExchange(desc, client, receiver)) {
-            log(2, "Data exchange with client number %d failed, he is trying to verify.", client->getId());
-            addrClientPairs.erase(cliAddr.s_addr);//As client thinks he is not verified, we remove it from registered.
-            registration(desc, cliAddr, receiver);
+            if (dynamic_cast<ID*>(receiver.getPacket())) {
+                log(2, "Data exchange with client number %d failed, he is trying to verify.", client->getId());
+                addrClientPairs.erase(
+                        cliAddr.s_addr);//As client thinks he is not verified, we remove it from registered.
+                registration(desc, cliAddr, receiver);
+            }
         }
     } else {
         sharedLock.unlock();

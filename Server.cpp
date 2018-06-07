@@ -54,13 +54,13 @@ void Server::mqReceiveLoop() {
             }
         } else if (auto set = dynamic_cast<Q_SET*> (inPacket)) {
             log(4, "Received Q_SET form message queue.");
-            Service *service = serviceTable.getService(get->getId());
+            Service *service = serviceTable.getService(set->getId());
             if (auto out = dynamic_cast<Output*> (service)) {
                 out->setVal(set->getValue());
             } else if (set == nullptr) {
-                log (3, "Second server part tried to set value of non-registered service %d.", get->getId());
+                log (3, "Second server part tried to set value of non-registered service %d.", set->getId());
             } else {
-                log (3, "Second server part tried to set value of input service %d.", get->getId());
+                log (3, "Second server part tried to set value of input service %d.", set->getId());
             }
         } else if (inPacket == nullptr) {
             if (errno == EBADF) {

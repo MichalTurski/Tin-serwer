@@ -215,13 +215,12 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
                 return false;
             }
             packet = receiver.nextPacket();
-            if (!dynamic_cast<ACK *> (packet)) {
-                if (dynamic_cast<NAK *> (packet)) {
-                    EOT eot;
-                    eot.send(sockDesc, sesskey);//don't care about success, closing socket anyway.
-                } else if (packet != nullptr) {
-                    log(3, "Received wrong message in response to SET, expected ACK or NAK.");
-                }
+            if (dynamic_cast<ACK *> (packet)) {
+                i.second->finalizeSetting();
+            } else if (dynamic_cast<NAK *>(packet)) {
+                log(3, "Failed to set value of device %d.", i.second->getId());
+            } else {
+                log(3, "Received wrong message in response to SET, expected ACK or NAK.");
                 return false;
             }
         }
@@ -230,10 +229,7 @@ bool Client::setValues(int sockDesc, Sesskey *sesskey, Receiver &receiver) {
     if (!eot.send(sockDesc, sesskey)) {
         return false;
     }
-    log(2, "Setting values of client %d succeed.", id);
-    for (auto &&i :outputs) {
-        i.second->finalizeSetting();
-    }
+    log(2, "Setting values of client %d ended.", id);
     return true;
 }
 bool Client::setExit(int sockDesc, Sesskey *sesskey) {
