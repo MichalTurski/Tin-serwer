@@ -22,7 +22,8 @@ private:
     ReadQueue readMsgQueue;
 #endif //NO_MQ
 public:
-    explicit Server(const char *file);
+    explicit Server(const std::string &privkeyFile,const std::string &inMQ,
+                       const std::string &outMQ);
     ~Server();
 #ifndef NO_MQ
     void mqReceiveLoop();

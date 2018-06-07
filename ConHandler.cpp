@@ -11,8 +11,9 @@
 #include "packet.h"
 #include "Receiver.h"
 
-ConHandler::ConHandler(std::string fileName): exitFlag(false) {
-    std::ifstream configfile(fileName);
+ConHandler::ConHandler(const std::string &configfileName, const std::string &inMQ,
+                       const std::string &outMQ): exitFlag(false) {
+    std::ifstream configfile(configfileName);
     std::string privkeyFile;
     std::string deviceId, devicePubkeyFile;
     int id;
@@ -22,7 +23,7 @@ ConHandler::ConHandler(std::string fileName): exitFlag(false) {
         configfile >> privkeyFile;
         if (! privkeyFile.empty()){
             try {
-                server = new Server(privkeyFile.c_str());
+                server = new Server(privkeyFile, inMQ, outMQ);
 #ifndef NO_MQ
                 mqReceiver = std::thread(&Server::mqReceiveLoop, server);
 #endif //NO_MQ

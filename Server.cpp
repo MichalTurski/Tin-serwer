@@ -13,42 +13,22 @@
 #include "common.h"
 #include "queuePacket.h"
 
-Server::Server(const char *file): privkey(file)
+Server::Server(const std::string &privkeyFile, const std::string &inMQ,
+               const std::string &outMQ): privkey(privkeyFile.c_str())
 #ifndef NO_MQ
-                                  ,sendMsgQueue("/queueFromGonzo", O_WRONLY),
-                                  readMsgQueue("/queueToGonzo", O_WRONLY)
+                                  ,sendMsgQueue(outMQ, O_WRONLY),
+                                  readMsgQueue(inMQ, O_RDONLY)
 #endif// NO_MQ
 {
     OPENSSL_config (nullptr);
     ERR_load_crypto_strings ();
-//    mqReceiver = std::thread(mqReceiveLoop, this);
-//    OpenSSL_add_all_ciphers();
-//    OpenSSL_add_all_algorithms();
-//    CRYPTO_malloc_init();
 }
-/*Server::Server() {
-    OPENSSL_config (nullptr);
-    ERR_load_crypto_strings ();
-    OpenSSL_add_all_ciphers();
-    OpenSSL_add_all_algorithms();
-    CRYPTO_malloc_init();
-}*/
 Server::~Server() {
-
-//    ERR_free_strings ();
-//    RAND_cleanup ();
-//    EVP_cleanup ();
-//    CONF_modules_free ();
-//    ERR_remove_state (0);
+    ERR_free_strings ();
+    RAND_cleanup ();
+    EVP_cleanup ();
+    CONF_modules_free ();
 }
-
-/*static void Server::mqReceiveStatic(void *serverPtr) {
-    Server *server = static_cast<Server*>(serverPtr);
-    server->mqReceiveLoop();
-}
-void Server::initComunication() {
-    mqReceiver = std::thread(&Server::mqReceiveStatic, this);
-}*/
 
 #ifndef NO_MQ
 void Server::mqReceiveLoop() {
@@ -57,23 +37,20 @@ void Server::mqReceiveLoop() {
     time_t mTime;
     while (working) {
         inPacket = QueuePacket::packetFromQueue(&readMsgQueue);
-        //todo: mutex dla obrony przed destruktorem servera
         if (auto get = dynamic_cast<Q_GET*> (inPacket)) {
             log(4, "Received Q_GET form message queue.");
-            if (get->getId() == 0) {
-                //TODO
+            const Service *service = serviceTable.getService(get->getId());
+            if (auto input = dynamic_cast<const Input *> (service)) {
+                Q_VAL val(input->getId(), input->getVal(), input->getTimestamp());
+                val.addToQueue(&sendMsgQueue);
+            } else if (auto output = dynamic_cast<const Output *> (service)) {
+                time(&mTime);
+                Q_VAL val(output->getId(), output->getVal(), mTime);
+                val.addToQueue(&sendMsgQueue);
             } else {
-                const Service *service = serviceTable.getService(get->getId());
-                if (auto input = dynamic_cast<const Input *> (service)) {
-                    Q_VAL val(input->getId(), input->getVal(), input->getTimestamp());
-                    val.addToQueue(&sendMsgQueue);
-                } else if (auto output = dynamic_cast<const Output *> (service)) {
-                    time(&mTime);
-                    Q_VAL val(output->getId(), output->getVal(), mTime);
-                    val.addToQueue(&sendMsgQueue);
-                } else {
-                    log(3, "Second server part requested value of non-registered service %d.", get->getId());
-                }
+                log(3, "Second server part requested value of non-registered service %d.", get->getId());
+                Q_NAK nak(get->getId());
+                nak.addToQueue(&sendMsgQueue);
             }
         } else if (auto set = dynamic_cast<Q_SET*> (inPacket)) {
             log(4, "Received Q_SET form message queue.");

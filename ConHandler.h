@@ -30,7 +30,8 @@ private:
     void registration(int sockDesc, struct in_addr cliAddr, Receiver &receiver);
     bool tryDataExchange(int sockDesc, Client *client, Receiver &receiver);
 public:
-    explicit ConHandler(std::string fileName);
+    explicit ConHandler(const std::string &configfileName, const std::string &inMQ,
+                        const std::string & outMQ);
     ~ConHandler();
     void getReadyToExit(std::condition_variable **ready, std::mutex **readyM);
     void handle(int desc, struct in_addr &cliAddr);
