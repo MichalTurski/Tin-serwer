@@ -19,12 +19,12 @@ protected:
     };
 
     mutable std::mutex mutex;
+    serviceType type;
     std::string name;
     std::string unit;
-    serviceType type;
-    float val;
     const float min;
     const float max;
+    float val;
     Service(unsigned char id, serviceType type, std::string &name, std::string& unit, float min,
             float max);
 public:

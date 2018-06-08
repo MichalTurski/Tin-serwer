@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cstdarg>
+#include <unistd.h>
 #include "log.h"
 
 int verbosity;
@@ -30,6 +31,7 @@ void log(int level, const char *fmt, ...) {
     }
     if (level <= verbosity) {
         printf("%s ", timeBuf);
+        printf("[PID = %d] ", getpid());
         printf("[LOG_LEVEL = %d] ", level);
         vprintf(fmt, args);
         printf("\n");

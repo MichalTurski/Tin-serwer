@@ -30,7 +30,7 @@ AddQueue::AddQueue(const std::string name, int oflags, int queueMode, int msgSiz
 }
 
 int AddQueue::addMessage(std::string msg) {
-    addMessage(msg.c_str(), msg.size()+1);
+    return addMessage(msg.c_str(), msg.size()+1);
 }
 
 int AddQueue::addMessage(const char *msg, int msgSize) {
@@ -67,6 +67,7 @@ std::string AddQueue::getName() {
 
 AddQueue::~AddQueue() {
     CHECK(mq_close(queueDescriptor) != (mqd_t)-1);
+    CHECK(mq_unlink(queueName.c_str()) != (mqd_t)-1);
 }
 
 long AddQueue::getMessagesInQueue() {

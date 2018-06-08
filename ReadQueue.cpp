@@ -41,11 +41,14 @@ ReadQueue::ReadQueue(const std::string name, int oflags, int queueMode, int msgS
 
 int ReadQueue::readToCharArray(char *dest) {
 
+    struct timespec tm;
+    int bytesRead;
 //    int bytesRead = mq_receive(queueDescriptor, lastMsg, getMsgSize(), NULL);
-    int bytesRead = mq_receive(queueDescriptor, dest, getMsgSize(), NULL);
-    CHECK(bytesRead >= 0);
-
-    //memcpy(dest, lastMsg, bytesRead);
+    clock_gettime(CLOCK_REALTIME, &tm);
+    do {
+        tm.tv_sec += 1;
+        bytesRead = mq_timedreceive(queueDescriptor, dest, getMsgSize(), NULL, &tm);
+    } while (bytesRead <= 0 && errno != EBADF) ;
 
     return bytesRead;
 }
@@ -74,9 +77,11 @@ std::string ReadQueue::getName() {
 int ReadQueue::getMsgSize() {
     mq_attr attr;
 
-    CHECK(mq_getattr(queueDescriptor, &attr) == 0);
-
-    return attr.mq_msgsize;
+    if (mq_getattr(queueDescriptor, &attr) < 0) {
+        return 0;
+    } else {
+        return attr.mq_msgsize;
+    }
 }
 
 ReadQueue::~ReadQueue() {

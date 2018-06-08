@@ -2,6 +2,7 @@
 #include <thread>
 #include <csignal>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "ClientMock.h"
 #include "ConHandler.h"
@@ -29,12 +30,13 @@ int initSocket(uint16_t port = 12345) {
 }
 
 #ifndef NO_MOBILE_SERVER
-pid_t runMobileServer(const std::string &config, const std::string &outMQ, const std::string &inMQ) {
+pid_t runMobileServer(const std::string &serverBin, const std::string &config, const std::string &outMQ,
+                      const std::string &inMQ) {
     pid_t pid;
     pid = fork();
     if (pid == 0) {
-       // if (execl("echo", config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
-        if (execl("/bin/date", "date", 0, NULL) != 0){
+        if (execl(serverBin.c_str(), config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
+        //if (execl(serverBin.c_str(), "a", config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
             log(1, "Failed to run mobile server, aborting");
             kill(getppid(), SIGINT);
             exit(-1);
@@ -46,7 +48,6 @@ pid_t runMobileServer(const std::string &config, const std::string &outMQ, const
     }
     return pid;
 }
-
 #endif //NO_MOBILE_SERVER
 
 void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bool> &end, int sockfd, pid_t mobilePid) {
@@ -96,13 +97,14 @@ int main(int argc, char **argv) {
     std::string logfile = "server.log";
     std::string inMq = "/queueToGonzo";
     std::string outMq = "/queueFromGonzo";
+    std::string mobileServer = "./mobileServer";
     uint16_t port = 12345;
     socklen_t assocSize;
     std::atomic<bool> end;
     end = false;
     pid_t mobilePid;
 
-    while ((opt = getopt(argc, argv, "v:p:c:C:l:i:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "v:p:c:C:l:i:o:s:")) != -1) {
         switch (opt) {
             case 'v':
                 verbosity = atoi(optarg);
@@ -134,9 +136,12 @@ int main(int argc, char **argv) {
             case 'o':
                 outMq.assign(optarg);
                 break;
+            case 's':
+                mobileServer.assign(optarg);
+                break;
             default:
                 std::cout << "usage:\n" << argv[0] << " [-v verbosity] [-p port] [-c embeded configfile] [-C mobile configfile]\n"\
-                    "\t[-l logfile] [-i input message queue] [-o output message queue] \n";
+                    "\t[-l logfile] [-i input message queue] [-o output message queue] [-s mobileServer] \n";
                 return -1;
         }
     }
@@ -145,18 +150,15 @@ int main(int argc, char **argv) {
     if (socket < 0) {
         exit (-1);
     }
-    ConHandler conHandler(embededConf, inMq, outMq);
-#ifndef NO_MOBILE_SERVER
-    mobilePid = runMobileServer(mobileConf, outMq, inMq);
-#endif //NO_MOBILE_SERVER
     sigset_t termset;
     sigemptyset(&termset);
     sigaddset(&termset, SIGINT);
     pthread_sigmask(SIG_BLOCK, &termset, nullptr);
-#ifndef NO_TERMINATION
+
+    ConHandler conHandler(embededConf, inMq, outMq);
+    mobilePid = runMobileServer(mobileServer, mobileConf, outMq, inMq);
     std::thread terminationThread(terminationHandler, std::ref(termset),
                                   std::ref(conHandler), std::ref(end), socket, mobilePid);
-#endif //NO_TERMINATION
     sigaddset(&termset, SIGPIPE);
     pthread_sigmask(SIG_BLOCK, &termset, nullptr);
 #ifndef NO_THREAD_POOL
@@ -183,14 +185,8 @@ int main(int argc, char **argv) {
 #ifndef NO_CLIENT_MOCK
     mock.join();
 #endif //NO_CLIENT_MOCK
-#ifndef NO_TERMINATION
     terminationThread.join();
-#else
-    close(socket);
-#endif //NO_TERMINATION
-#ifndef NO_MOBILE_SERVER
     wait(nullptr);//wait for mobile server
-#endif //NO_MOBILE_SERVER
     logClose();
     return 0;
 }

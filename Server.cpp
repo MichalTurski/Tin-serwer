@@ -57,13 +57,13 @@ void Server::mqReceiveLoop() {
             }
         } else if (auto set = dynamic_cast<Q_SET*> (inPacket)) {
             log(4, "Received Q_SET form message queue.");
-            Service *service = serviceTable.getService(set->getId());
+            Service *service = serviceTable.getService(get->getId());
             if (auto out = dynamic_cast<Output*> (service)) {
                 out->setVal(set->getValue());
             } else if (set == nullptr) {
-                log (3, "Second server part tried to set value of non-registered service %d.", set->getId());
+                log (3, "Second server part tried to set value of non-registered service %d.", get->getId());
             } else {
-                log (3, "Second server part tried to set value of input service %d.", set->getId());
+                log (3, "Second server part tried to set value of input service %d.", get->getId());
             }
         } else if (inPacket == nullptr) {
             if (errno == EBADF) {
@@ -114,19 +114,15 @@ bool Server::unreserveId(unsigned char id) {
 bool Server::addService(unsigned char id, Service *service) {
     bool result;
     result = serviceTable.push(service, id);
-#ifndef NO_MQ
     Q_DESC desc(service->getId(), service->getType(), service->getName(), service->getUnit(),
                 service->getMin(), service->getMax());
     desc.addToQueue(&sendMsgQueue);
-#endif //NO_MQ
     return result;
 }
 bool Server::unregisterService(unsigned char id) {
     bool result;
     result = serviceTable.remove(id);
-#ifndef NO_MQ
     Q_EXIT exit(id);
     exit.addToQueue(&sendMsgQueue);
-#endif //NO_MQ
     return result;
 }
