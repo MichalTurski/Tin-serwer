@@ -35,8 +35,7 @@ pid_t runMobileServer(const std::string &serverBin, const std::string &config, c
     pid_t pid;
     pid = fork();
     if (pid == 0) {
-        if (execl(serverBin.c_str(), config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
-        //if (execl(serverBin.c_str(), "a", config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
+        if (execl(serverBin.c_str(), serverBin.c_str(), config.c_str(), outMQ.c_str(), inMQ.c_str(), NULL) != 0){
             log(1, "Failed to run mobile server, aborting");
             kill(getppid(), SIGINT);
             exit(-1);
@@ -45,6 +44,8 @@ pid_t runMobileServer(const std::string &serverBin, const std::string &config, c
     } else if (pid < 0) {
         log(1, "Failed to fork, aborting");
         exit(-1);
+    } else {
+        log(1, "Created mobile server with pid %d.", pid);
     }
     return pid;
 }
@@ -65,7 +66,8 @@ void terminationHandler(sigset_t &sigset, ConHandler &conHandler, std::atomic<bo
             sigReceived = true;
             log(1, "Received signal %s, trying do disconnect from all clients.",
                 strsignal(siginfo.si_signo));
-            kill(mobilePid, SIGINT);
+            log(3, "Sending SIGINT to children (pid = %d).", mobilePid);
+            kill(mobilePid, SIGTERM);
             conHandler.setExit();
         } else {
             conHandler.clockWalk();
@@ -179,14 +181,15 @@ int main(int argc, char **argv) {
         }
     }
 #ifndef NO_THREAD_POOL
-    tp.stop(true);
+    tp.stop();
 #endif //NOTHREAD_POOL
 
 #ifndef NO_CLIENT_MOCK
     mock.join();
 #endif //NO_CLIENT_MOCK
     terminationThread.join();
-    wait(nullptr);//wait for mobile server
+    log(2, "Waiting for children (pid = %d) end", mobilePid);
+    waitpid(mobilePid, nullptr, 0);//wait for mobile server
     logClose();
     return 0;
 }

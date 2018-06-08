@@ -33,7 +33,6 @@ Server::~Server() {
     CONF_modules_free ();
 }
 
-#ifndef NO_MQ
 void Server::mqReceiveLoop() {
     bool working = true;
     QueuePacket *inPacket;
@@ -79,7 +78,6 @@ void Server::mqReceiveLoop() {
         delete (inPacket);
     }
 }
-#endif //NO_MQ
 
 bool Server::verifyServer(int sockDesc, Receiver &receiver) const {
     unsigned char sign[256];

@@ -55,9 +55,6 @@ QueuePacket* QueuePacket::packetFromQueue(ReadQueue *readQueue) {
             new_packet = new Q_EXIT(bufor_unsigned);
     }
 
-
-
-
     return new_packet;
 }
 

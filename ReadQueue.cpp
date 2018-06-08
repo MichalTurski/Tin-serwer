@@ -48,7 +48,7 @@ int ReadQueue::readToCharArray(char *dest) {
     do {
         tm.tv_sec += 1;
         bytesRead = mq_timedreceive(queueDescriptor, dest, getMsgSize(), NULL, &tm);
-    } while (bytesRead <= 0 && errno != EBADF) ;
+    } while (bytesRead <= 0 && errno == ETIMEDOUT) ;
 
     return bytesRead;
 }
